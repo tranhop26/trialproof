@@ -81,4 +81,4 @@ def test_unknown_assessment_reverts(contract, direct_vm):
 
 
 def test_version_is_fixed(contract):
-    assert contract.get_version() == "trialproof/1.0.0"
+    assert contract.get_version() == "trialproof/1.0.1"

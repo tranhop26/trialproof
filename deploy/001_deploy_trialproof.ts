@@ -123,7 +123,7 @@ export async function runDeployment(
   }
   assertExpectedSchemaSurface(await options.client.getRuntimeSchema(receipt.address));
   const version = await options.client.readVersion(receipt.address);
-  if (version !== "trialproof/1.0.0") {
+  if (version !== "trialproof/1.0.1") {
     throw new Error("DEPLOY_VERSION_MISMATCH");
   }
   const initialAssessmentCount = await options.client.readAssessmentCount(receipt.address);

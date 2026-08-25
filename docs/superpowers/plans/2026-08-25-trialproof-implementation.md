@@ -99,7 +99,7 @@ Expected: collection or execution fails because `contracts/trial_proof.py` and `
 
 - [ ] **Step 4: Implement the minimal registry and canonical views**
 
-Use version constants `trialproof/1.0.0`, `trialproof-disclosure/1`, and `trialproof-workflow/1`. `register_study` must uppercase only an otherwise exact `NCT` plus eight-digit input, store an immutable case with `state="REGISTERED"`, `attempt=0`, `revision=0`, `certified=False`, a seven-day assessment deadline, and lowercased sender address. Store canonical JSON with sorted keys.
+Use version constants `trialproof/1.0.1`, `trialproof-disclosure/1`, and `trialproof-workflow/1`. `register_study` must uppercase only an otherwise exact `NCT` plus eight-digit input, store an immutable case with `state="REGISTERED"`, `attempt=0`, `revision=0`, `certified=False`, a seven-day assessment deadline, and lowercased sender address. Store canonical JSON with sorted keys.
 
 - [ ] **Step 5: Add failing pagination and terminal-invariant tests, then implement them**
 

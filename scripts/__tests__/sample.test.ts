@@ -19,7 +19,7 @@ const manifest: DeploymentManifest = {
   sourceBytes: 100,
   sourceSha256: "c".repeat(64),
   transactionHash: `0x${"d".repeat(64)}`,
-  version: "trialproof/1.0.0",
+  version: "trialproof/1.0.1",
 };
 const finalReceipt = { executionStatus: "FINISHED_WITH_RETURN", finalized: true };
 const stored = {

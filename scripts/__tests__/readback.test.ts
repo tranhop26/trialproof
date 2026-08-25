@@ -32,7 +32,7 @@ const manifest: DeploymentManifest = {
   sourceBytes: source.byteLength,
   sourceSha256: hash,
   transactionHash: `0x${"b".repeat(64)}`,
-  version: "trialproof/1.0.0",
+  version: "trialproof/1.0.1",
 };
 
 
@@ -43,7 +43,7 @@ function client(overrides: Partial<ReadbackClient> = {}): ReadbackClient {
     readAssessment: async () => JSON.stringify(assessment),
     readAssessmentCount: async () => 1,
     readCurrentCode: async () => source,
-    readVersion: async () => "trialproof/1.0.0",
+    readVersion: async () => "trialproof/1.0.1",
     ...overrides,
   };
 }
@@ -56,7 +56,7 @@ describe("runReadback", () => {
       client: client(),
       expectedNctId: "NCT01234567",
       expectedSourceBytes: source,
-      expectedVersion: "trialproof/1.0.0",
+      expectedVersion: "trialproof/1.0.1",
       manifest,
     });
     expect(report.sourceMatches).toBe(true);
@@ -79,7 +79,7 @@ describe("runReadback", () => {
         client: candidateClient,
         expectedNctId: "NCT01234567",
         expectedSourceBytes: source,
-        expectedVersion: "trialproof/1.0.0",
+        expectedVersion: "trialproof/1.0.1",
         manifest: candidateManifest,
       }),
     ).rejects.toThrow(message);

@@ -22,7 +22,7 @@ const input = {
   sourceBytes: 19364,
   sourceSha256: "a".repeat(64),
   transactionHash: `0x${"b".repeat(64)}`,
-  version: "trialproof/1.0.0",
+  version: "trialproof/1.0.1",
 } as const;
 
 
@@ -39,7 +39,7 @@ describe("buildDeploymentManifest", () => {
       sourceBytes: 19364,
       sourceSha256: "a".repeat(64),
       transactionHash: input.transactionHash,
-      version: "trialproof/1.0.0",
+      version: "trialproof/1.0.1",
     });
   });
 

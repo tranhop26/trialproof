@@ -64,7 +64,7 @@ import genlayer as gl
 from genlayer import*
 from datetime import datetime,timezone
 import hashlib,json,unicodedata
-VERSION='trialproof/1.0.0'
+VERSION='trialproof/1.0.1'
 POLICY_VERSION='trialproof-disclosure/1'
 WORKFLOW_VERSION='trialproof-workflow/1'
 ASSESSMENT_WINDOW_SECONDS=604800
@@ -140,7 +140,7 @@ class TrialProof(gl.Contract):
 		try:protocol=study_data['protocolSection'];identification=protocol['identificationModule'];source_nct_id=identification['nctId']
 		except Exception:return self._unsafe_snapshot(_A2,observed_at)
 		if source_nct_id!=expected_nct_id:return self._unsafe_snapshot(_A1,observed_at)
-		sponsor=identification.get('organization',{}).get('fullName','');sponsor_identity=self._safe_text(sponsor).casefold()if self._safe_text(sponsor)else'';status_module=protocol.get('statusModule',{});completion=status_module.get('primaryCompletionDateStruct',{}).get(B,'');results_posted=status_module.get('resultsFirstPostDateStruct',{}).get(B,'');overall_status=status_module.get('overallStatus','');primary_outcomes=protocol.get('outcomesModule',{}).get('primaryOutcomes');reported_outcomes=study_data.get('resultsSection',{}).get('outcomeMeasuresModule',{}).get('outcomeMeasures',[]);snapshot={_N:api_timestamp,'api_version':api_version,_B:'','has_results':study_data.get('hasResults')is _D,_C:source_nct_id,_M:observed_at,'overall_status':self._safe_text(overall_status)or'',C:self._safe_text(completion)or'',_k:[],_l:[],'results_first_post_date':self._safe_text(results_posted)or'',_F:_D,'source_host':'clinicaltrials.gov',_O:sponsor_identity}
+		sponsor=protocol.get('sponsorCollaboratorsModule',{}).get('leadSponsor',{}).get('name','');sponsor_identity=self._safe_text(sponsor).casefold()if self._safe_text(sponsor)else'';status_module=protocol.get('statusModule',{});completion=status_module.get('primaryCompletionDateStruct',{}).get(B,'');results_posted=status_module.get('resultsFirstPostDateStruct',{}).get(B,'');overall_status=status_module.get('overallStatus','');primary_outcomes=protocol.get('outcomesModule',{}).get('primaryOutcomes');reported_outcomes=study_data.get('resultsSection',{}).get('outcomeMeasuresModule',{}).get('outcomeMeasures',[]);snapshot={_N:api_timestamp,'api_version':api_version,_B:'','has_results':study_data.get('hasResults')is _D,_C:source_nct_id,_M:observed_at,'overall_status':self._safe_text(overall_status)or'',C:self._safe_text(completion)or'',_k:[],_l:[],'results_first_post_date':self._safe_text(results_posted)or'',_F:_D,'source_host':'clinicaltrials.gov',_O:sponsor_identity}
 		if not sponsor_identity:snapshot[_T]=_I;snapshot[_B]=_A6;return snapshot
 		if not isinstance(primary_outcomes,list)or len(primary_outcomes)==0:snapshot[_T]=_I;snapshot[_B]=_o;return snapshot
 		if len(primary_outcomes)>MAX_OUTCOMES or not isinstance(reported_outcomes,list)or len(reported_outcomes)>MAX_OUTCOMES:return self._unsafe_snapshot(_A3,observed_at)

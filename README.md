@@ -97,7 +97,7 @@ $env:TRIALPROOF_DEPLOY_CONFIRM = "DEPLOY_TRIALPROOF"
 npx tsx deploy/001_deploy_trialproof.ts --live
 ```
 
-The guarded script requires Bradbury chain ID `4221`, an exact frozen schema, current artifact, source below 50,000 bytes, `FINALIZED`, execution `FINISHED_WITH_RETURN`, version `trialproof/1.0.0`, and zero initial assessments. It writes `deployments/bradbury.json` only after those checks pass.
+The guarded script requires Bradbury chain ID `4221`, an exact frozen schema, current artifact, source below 50,000 bytes, `FINALIZED`, execution `FINISHED_WITH_RETURN`, version `trialproof/1.0.1`, and zero initial assessments. It writes `deployments/bradbury.json` only after those checks pass.
 
 ## Sample transaction and readback
 

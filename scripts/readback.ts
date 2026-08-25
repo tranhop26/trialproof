@@ -204,7 +204,7 @@ async function main(): Promise<void> {
     client: await createLiveClient(privateKey),
     expectedNctId: process.argv[4],
     expectedSourceBytes: source,
-    expectedVersion: "trialproof/1.0.0",
+    expectedVersion: "trialproof/1.0.1",
     manifest,
   });
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);

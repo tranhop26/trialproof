@@ -6,7 +6,7 @@ import hashlib
 import json
 import unicodedata
 
-VERSION = "trialproof/1.0.0"
+VERSION = "trialproof/1.0.1"
 POLICY_VERSION = "trialproof-disclosure/1"
 WORKFLOW_VERSION = "trialproof-workflow/1"
 ASSESSMENT_WINDOW_SECONDS = 604_800
@@ -290,7 +290,11 @@ class TrialProof(gl.Contract):
             return self._unsafe_snapshot("SOURCE_IDENTITY_MISSING", observed_at)
         if source_nct_id != expected_nct_id:
             return self._unsafe_snapshot("SOURCE_IDENTITY_MISMATCH", observed_at)
-        sponsor = identification.get("organization", {}).get("fullName", "")
+        sponsor = (
+            protocol.get("sponsorCollaboratorsModule", {})
+            .get("leadSponsor", {})
+            .get("name", "")
+        )
         sponsor_identity = (
             self._safe_text(sponsor).casefold() if self._safe_text(sponsor) else ""
         )

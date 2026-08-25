@@ -30,7 +30,7 @@ function client(overrides: Partial<DeploymentClient> = {}): DeploymentClient {
     getDeployerAddress: async () => address,
     getRuntimeSchema: async () => ({ methods: expectedMethods }),
     readAssessmentCount: async () => 0,
-    readVersion: async () => "trialproof/1.0.0",
+    readVersion: async () => "trialproof/1.0.1",
     ...overrides,
   };
 }

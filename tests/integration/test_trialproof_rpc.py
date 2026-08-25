@@ -42,7 +42,9 @@ def _study() -> dict:
         "protocolSection": {
             "identificationModule": {
                 "nctId": NCT_ID,
-                "organization": {"fullName": "Example Research Institute"},
+            },
+            "sponsorCollaboratorsModule": {
+                "leadSponsor": {"name": "Example Research Institute"}
             },
             "statusModule": {
                 "overallStatus": "COMPLETED",

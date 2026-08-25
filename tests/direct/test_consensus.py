@@ -15,7 +15,9 @@ def study_data():
         "protocolSection": {
             "identificationModule": {
                 "nctId": "NCT01234567",
-                "organization": {"fullName": "Example Research Institute"},
+            },
+            "sponsorCollaboratorsModule": {
+                "leadSponsor": {"name": "Example Research Institute"}
             },
             "statusModule": {
                 "overallStatus": "COMPLETED",
