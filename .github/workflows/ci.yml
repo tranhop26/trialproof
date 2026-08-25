@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Check Python formatting
+        run: ruff format --check contracts tests scripts
+
+      - name: Lint Intelligent Contract for GenVM
+        env:
+          PYTHONIOENCODING: utf-8
+        run: genvm-lint check contracts/trial_proof.py
+
+      - name: Verify deploy artifact is reproducible
+        run: python scripts/build_bradbury_contract.py --check
+
+      - name: Run direct and tooling tests
+        run: pytest tests/direct tests/tooling -q
+
+      - name: Run integration tests
+        run: pytest tests/integration -q
+
+      - name: Run TypeScript tests
+        run: npm test
+
+      - name: Run TypeScript typecheck
+        run: npm run typecheck
