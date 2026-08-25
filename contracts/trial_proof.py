@@ -10,6 +10,8 @@ VERSION = "trialproof/1.0.0"
 POLICY_VERSION = "trialproof-disclosure/1"
 WORKFLOW_VERSION = "trialproof-workflow/1"
 ASSESSMENT_WINDOW_SECONDS = 604_800
+REFRESH_COOLDOWN_SECONDS = 3_600
+MAX_ATTEMPTS = 3
 MAX_PAGE_SIZE = 100
 MAX_WEB_BODY_BYTES = 24_576
 MAX_SOURCE_AGE_SECONDS = 432_000
@@ -26,6 +28,7 @@ VERDICTS = {
 }
 REASON_CODES = {
     "COMPLETION_DATE_MISSING",
+    "CONSENSUS_OR_EXECUTION_TIMEOUT",
     "INVALID_SEMANTIC_RESULT",
     "MISSING_PRIMARY_RESULT",
     "PRIMARY_OUTCOMES_MISSING",
@@ -90,6 +93,76 @@ class TrialProof(gl.Contract):
         now = self._transaction_timestamp()
         self._require(now < assessment["assessment_deadline"], "ASSESSMENT_CLOSED")
         return self._run_assessment(assessment_id, assessment, "ASSESS", now)
+
+    @gl.public.write
+    def refresh(self, assessment_id: str) -> str:
+        assessment = self._load_assessment(assessment_id)
+        self._require(
+            assessment["state"]
+            in {"ACTION_REQUIRED", "REQUEST_MORE_INFO", "UNRESOLVED"},
+            "INVALID_STATE",
+        )
+        self._require(assessment["attempt"] < MAX_ATTEMPTS, "MAX_ATTEMPTS_REACHED")
+        now = self._transaction_timestamp()
+        self._require(now >= assessment.get("next_refresh_at", 0), "REFRESH_NOT_READY")
+        return self._run_assessment(assessment_id, assessment, "REFRESH", now)
+
+    @gl.public.write
+    def expire_assessment(self, assessment_id: str) -> str:
+        assessment = self._load_assessment(assessment_id)
+        self._require(assessment["state"] == "REGISTERED", "INVALID_STATE")
+        now = self._transaction_timestamp()
+        self._require(
+            now >= assessment["assessment_deadline"], "ASSESSMENT_NOT_EXPIRED"
+        )
+        snapshot = self._unsafe_snapshot("CONSENSUS_OR_EXECUTION_TIMEOUT", now)
+        snapshot["nct_id"] = assessment["nct_id"]
+        result = self._fallback_resolution(
+            snapshot, "CONSENSUS_OR_EXECUTION_TIMEOUT", now
+        )
+        action_domain = self._action_domain(
+            assessment_id,
+            assessment,
+            result["evidence_hash"],
+            "EXPIRE_ASSESSMENT",
+            assessment["revision"],
+            assessment["attempt"],
+        )
+        used = assessment.get("used_action_domains", [])
+        self._require(action_domain not in used, "ACTION_REPLAYED")
+        assessment["action_domain"] = action_domain
+        assessment["certified"] = False
+        assessment["evidence_hash"] = result["evidence_hash"]
+        assessment["last_action"] = "EXPIRE_ASSESSMENT"
+        assessment["next_refresh_at"] = now + REFRESH_COOLDOWN_SECONDS
+        assessment["resolution"] = result
+        assessment["state"] = "UNRESOLVED"
+        assessment["updated_at"] = now
+        assessment["used_action_domains"] = used + [action_domain]
+        self._save_assessment(assessment_id, assessment)
+        return self._receipt(assessment_id, "EXPIRE_ASSESSMENT", "UNRESOLVED")
+
+    @gl.public.write
+    def close_after_max_attempts(self, assessment_id: str) -> str:
+        assessment = self._load_assessment(assessment_id)
+        self._require(
+            assessment["state"]
+            in {"ACTION_REQUIRED", "REQUEST_MORE_INFO", "UNRESOLVED"},
+            "INVALID_STATE",
+        )
+        self._require(
+            assessment["attempt"] >= MAX_ATTEMPTS, "MAX_ATTEMPTS_NOT_REACHED"
+        )
+        now = self._transaction_timestamp()
+        assessment["certified"] = False
+        assessment["last_action"] = "CLOSE_AFTER_MAX_ATTEMPTS"
+        assessment["next_refresh_at"] = 0
+        assessment["state"] = "CLOSED_UNCERTIFIED"
+        assessment["updated_at"] = now
+        self._save_assessment(assessment_id, assessment)
+        return self._receipt(
+            assessment_id, "CLOSE_AFTER_MAX_ATTEMPTS", "CLOSED_UNCERTIFIED"
+        )
 
     @gl.public.view
     def get_assessment(self, assessment_id: str) -> str:
@@ -584,6 +657,11 @@ class TrialProof(gl.Contract):
         assessment["certified"] = result["certified"]
         assessment["evidence_hash"] = result["evidence_hash"]
         assessment["last_action"] = action
+        assessment["next_refresh_at"] = (
+            0
+            if result["verdict"] == "DISCLOSURE_COMPLETE"
+            else now + REFRESH_COOLDOWN_SECONDS
+        )
         assessment["observed_at"] = result["observed_at"]
         assessment["resolution"] = result
         assessment["revision"] = revision
@@ -619,4 +697,4 @@ class TrialProof(gl.Contract):
 
     def _require(self, condition: bool, code: str) -> None:
         if not condition:
-            raise Exception(code)
+            raise gl.vm.UserError(code)
