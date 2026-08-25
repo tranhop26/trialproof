@@ -111,11 +111,11 @@ After the same action-time wallet confirmation process:
 
 ```powershell
 $env:TRIALPROOF_SAMPLE_CONFIRM = "RUN_TRIALPROOF_SAMPLE"
-npx tsx scripts/run-sample.ts deployments/bradbury.json NCT01234567 --live
-npx tsx scripts/readback.ts deployments/bradbury.json 1 NCT01234567
+npx tsx scripts/run-sample.ts deployments/bradbury.json NCT04516746 --live
+npx tsx scripts/readback.ts deployments/bradbury.json 1 NCT04516746
 ```
 
-Replace the NCT ID with the explicitly reviewed public sample record. Success is established only after each transaction is `FINALIZED`, execution is `FINISHED_WITH_RETURN`, and contract state is read back. Submission of a transaction hash alone is not success.
+`NCT04516746` was preflighted against API version `2.0.5`: the bounded projection returned 4 registered and 4 reported primary outcomes in 19,497 bytes. Recheck it immediately before a live action because the web source can change. Success is established only after each transaction is `FINALIZED`, execution is `FINISHED_WITH_RETURN`, and contract state is read back. Submission of a transaction hash alone is not success.
 
 ## Public methods
 
