@@ -4,7 +4,7 @@ TrialProof is an independent GenLayer Intelligent Contract that makes an authori
 
 Verified Studionet deployment (`trialproof/1.0.1`): [contract](https://explorer-studio.genlayer.com/address/0x1354c6A89f92F9ccE45d7aAdC2b9bC372b51b158). The exact deployment and sample evidence is recorded in `deployments/studionet.json`.
 
-Live evidence: [deployment transaction](https://explorer-studio.genlayer.com/tx/0xac22c7627f1cb6c91bf8627b3dd7822cf999906b2079dd748e48e8d71e18672b), [registration transaction](https://explorer-studio.genlayer.com/tx/0xa47427ede94a6d9e049c28239935a22ef495825bacaa754a0fc81493f54d913b), and [assessment transaction](https://explorer-studio.genlayer.com/tx/0xb3c07509855e70e985225a28cdb6d65a63c5ca15ff28ce586553f83e12214aa5).
+Live evidence: [deployment transaction](https://explorer-studio.genlayer.com/tx/0xac22c7627f1cb6c91bf8627b3dd7822cf999906b2079dd748e48e8d71e18672b), happy-path [registration](https://explorer-studio.genlayer.com/tx/0xa47427ede94a6d9e049c28239935a22ef495825bacaa754a0fc81493f54d913b) and [assessment](https://explorer-studio.genlayer.com/tx/0xb3c07509855e70e985225a28cdb6d65a63c5ca15ff28ce586553f83e12214aa5), plus unavailable-source safe-branch [registration](https://explorer-studio.genlayer.com/tx/0x0e1ded7c1f9ba0e8bada2f13339a621dadb0f7e75c045131fc7fc1a227d20934) and [assessment](https://explorer-studio.genlayer.com/tx/0xa25b2654959226167b2bd6be6bf88a93f82e7e0c036576170cf24b291adc7b4b).
 
 It is intentionally narrow: one contract, one disclosure workflow, safe retry/timeout branches, deployment/readback tooling, and no frontend or financial mechanism.
 

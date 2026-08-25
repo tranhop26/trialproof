@@ -36,5 +36,22 @@
     "sourceSafe": true,
     "sponsorIdentity": "astrazeneca",
     "verdict": "DISCLOSURE_COMPLETE"
+  },
+  "safeBranchSample": {
+    "assessmentId": "2",
+    "assessExecution": "SUCCESS",
+    "assessStatus": "FINALIZED",
+    "assessTransactionHash": "0xa25b2654959226167b2bd6be6bf88a93f82e7e0c036576170cf24b291adc7b4b",
+    "certified": false,
+    "evidenceHash": "0x07b71c9f9e5da71c4add5550fa8382bc8340a8b41cebdf9b406eb277cc002655",
+    "nctId": "NCT99999999",
+    "readbackByIdMatchesReadbackByNctId": true,
+    "reasonCodes": ["SOURCE_HTTP_ERROR"],
+    "registerExecution": "SUCCESS",
+    "registerStatus": "FINALIZED",
+    "registerTransactionHash": "0x0e1ded7c1f9ba0e8bada2f13339a621dadb0f7e75c045131fc7fc1a227d20934",
+    "sourceFresh": false,
+    "sourceSafe": false,
+    "verdict": "UNRESOLVED"
   }
 }
