@@ -35,6 +35,25 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
+      - name: Cache GenVM direct-test runner
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/gltest-direct/genvm-universal-v0.3.0-rc7.tar.xz
+          key: gltest-direct-v0.3.0-rc7-e218a185
+
+      - name: Prepare GenVM direct-test runner
+        shell: bash
+        run: |
+          artifact="$HOME/.cache/gltest-direct/genvm-universal-v0.3.0-rc7.tar.xz"
+          if [[ ! -f "$artifact" ]]; then
+            mkdir -p "$(dirname "$artifact")"
+            curl --fail --location --retry 3 \
+              https://github.com/genlayerlabs/genvm/releases/download/v0.3.0-rc7/genvm-runners-all.tar.xz \
+              --output "$artifact"
+          fi
+          echo "e218a1854214681560351051f76fe2b878545cf3409455ef372d57014a88ca67  $artifact" \
+            | sha256sum --check
+
       - name: Check Python formatting
         run: ruff format --check contracts tests scripts
 
