@@ -1,0 +1,12 @@
+networks:
+  default: testnet_bradbury
+  testnet_bradbury:
+    accounts:
+      - ${GENLAYER_CALLER_PRIVATE_KEY}
+    from: ${GENLAYER_CALLER_PRIVATE_KEY}
+    default_wait_interval: 3000
+    default_wait_retries: 120
+paths:
+  contracts: contracts
+  artifacts: artifacts
+environment: .env

@@ -1,0 +1,10 @@
+networks:
+  default: localnet
+  localnet:
+    default_wait_interval: 1000
+    default_wait_retries: 120
+  testnet_bradbury: {}
+paths:
+  contracts: contracts
+  artifacts: artifacts
+environment: .env
