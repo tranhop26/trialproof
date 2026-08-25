@@ -24,7 +24,9 @@ def register(contract, direct_vm, sender, nct_id="NCT01234567"):
     return json.loads(contract.register_study(nct_id))
 
 
-def test_registers_canonical_nct_and_rejects_duplicate(contract, direct_vm, direct_alice):
+def test_registers_canonical_nct_and_rejects_duplicate(
+    contract, direct_vm, direct_alice
+):
     receipt = register(contract, direct_vm, direct_alice, "nct01234567")
     assert receipt == {
         "action": "REGISTER_STUDY",
@@ -60,7 +62,10 @@ def test_views_and_pagination_are_bounded(contract, direct_vm, direct_alice):
     assert contract.get_assessment_count() == 3
     assert contract.get_assessment_ids_page(0, 2) == ["1", "2"]
     assert contract.get_assessment_ids_page(2, 2) == ["3"]
-    assert json.loads(contract.get_assessment_by_nct_id("nct00000002"))["assessment_id"] == "2"
+    assert (
+        json.loads(contract.get_assessment_by_nct_id("nct00000002"))["assessment_id"]
+        == "2"
+    )
     assert contract.get_assessment_by_nct_id("NCT99999999") == "{}"
     with direct_vm.expect_revert("INVALID_PAGE"):
         contract.get_assessment_ids_page(-1, 1)

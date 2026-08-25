@@ -55,13 +55,17 @@ def complete_study():
                         "type": "PRIMARY",
                         "title": "Systolic blood pressure change at week 12",
                         "description": "Change from baseline",
-                        "classes": [{"categories": [{"measurements": [{"value": "-8.2"}]}]}],
+                        "classes": [
+                            {"categories": [{"measurements": [{"value": "-8.2"}]}]}
+                        ],
                     },
                     {
                         "type": "PRIMARY",
                         "title": "Number of participants with serious adverse events",
                         "description": "SAE count through week 12",
-                        "classes": [{"categories": [{"measurements": [{"value": "3"}]}]}],
+                        "classes": [
+                            {"categories": [{"measurements": [{"value": "3"}]}]}
+                        ],
                     },
                 ]
             }
@@ -74,7 +78,9 @@ def complete_study():
 def test_contract_constructs_only_official_urls(contract):
     assert contract._version_url() == "https://clinicaltrials.gov/api/v2/version"
     study_url = contract._study_url("NCT01234567")
-    assert study_url.startswith("https://clinicaltrials.gov/api/v2/studies/NCT01234567?")
+    assert study_url.startswith(
+        "https://clinicaltrials.gov/api/v2/studies/NCT01234567?"
+    )
     assert "format=json" in study_url
     assert "fields=" in study_url
     assert "http://" not in study_url
@@ -94,8 +100,14 @@ def test_identity_mismatch_is_unsafe(contract, fresh_version, complete_study):
 def test_stale_future_or_malformed_version_is_unsafe(contract, complete_study):
     cases = [
         ({"version": "2.0.1", "dataTimestamp": "2027-01-10T07:59:59Z"}, "SOURCE_STALE"),
-        ({"version": "2.0.1", "dataTimestamp": "2027-01-15T08:05:01Z"}, "SOURCE_FUTURE"),
-        ({"version": "2.0.1", "dataTimestamp": "not-a-date"}, "SOURCE_VERSION_MALFORMED"),
+        (
+            {"version": "2.0.1", "dataTimestamp": "2027-01-15T08:05:01Z"},
+            "SOURCE_FUTURE",
+        ),
+        (
+            {"version": "2.0.1", "dataTimestamp": "not-a-date"},
+            "SOURCE_VERSION_MALFORMED",
+        ),
         ({"dataTimestamp": "2027-01-15T08:00:00Z"}, "SOURCE_VERSION_MALFORMED"),
     ]
     for version, expected_code in cases:
@@ -107,7 +119,9 @@ def test_stale_future_or_malformed_version_is_unsafe(contract, complete_study):
         assert result["failure_code"] == expected_code
 
 
-def test_missing_decision_fields_request_more_info(contract, fresh_version, complete_study):
+def test_missing_decision_fields_request_more_info(
+    contract, fresh_version, complete_study
+):
     changed = copy.deepcopy(complete_study)
     del changed["protocolSection"]["outcomesModule"]["primaryOutcomes"]
     result = contract._extract_source_snapshot(
@@ -149,8 +163,12 @@ def test_snapshot_hash_is_canonical_and_action_domain_separates_attempts(
     direct_vm.sender = direct_alice
     assessment_id = json.loads(contract.register_study("NCT01234567"))["assessment_id"]
     assessment = json.loads(contract.get_assessment(assessment_id))
-    first = contract._action_domain(assessment_id, assessment, evidence_hash, "ASSESS", 1, 1)
-    retry = contract._action_domain(assessment_id, assessment, evidence_hash, "REFRESH", 2, 2)
+    first = contract._action_domain(
+        assessment_id, assessment, evidence_hash, "ASSESS", 1, 1
+    )
+    retry = contract._action_domain(
+        assessment_id, assessment, evidence_hash, "REFRESH", 2, 2
+    )
     assert first != retry
     assert len(first) == 66 and len(retry) == 66
 
@@ -162,13 +180,26 @@ def test_fetch_json_rejects_transport_and_size_failures(contract, monkeypatch):
             self.body = body
 
     monkeypatch.setattr(gl_web(contract), "get", lambda _url: Response(503, b"{}"))
-    assert contract._fetch_json(contract._version_url())["failure_code"] == "SOURCE_HTTP_ERROR"
+    assert (
+        contract._fetch_json(contract._version_url())["failure_code"]
+        == "SOURCE_HTTP_ERROR"
+    )
 
-    monkeypatch.setattr(gl_web(contract), "get", lambda _url: Response(200, b"x" * 24_577))
-    assert contract._fetch_json(contract._version_url())["failure_code"] == "SOURCE_TOO_LARGE"
+    monkeypatch.setattr(
+        gl_web(contract), "get", lambda _url: Response(200, b"x" * 24_577)
+    )
+    assert (
+        contract._fetch_json(contract._version_url())["failure_code"]
+        == "SOURCE_TOO_LARGE"
+    )
 
-    monkeypatch.setattr(gl_web(contract), "get", lambda _url: Response(200, b"not-json"))
-    assert contract._fetch_json(contract._version_url())["failure_code"] == "SOURCE_MALFORMED"
+    monkeypatch.setattr(
+        gl_web(contract), "get", lambda _url: Response(200, b"not-json")
+    )
+    assert (
+        contract._fetch_json(contract._version_url())["failure_code"]
+        == "SOURCE_MALFORMED"
+    )
 
 
 def gl_web(contract):

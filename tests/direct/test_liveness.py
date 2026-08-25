@@ -102,7 +102,10 @@ def test_max_attempts_close_without_certification(
         )
         direct_vm.sender = direct_charlie
         contract.refresh(assessment_id)
-        assert json.loads(contract.get_assessment(assessment_id))["attempt"] == expected_attempt
+        assert (
+            json.loads(contract.get_assessment(assessment_id))["attempt"]
+            == expected_attempt
+        )
 
     before = contract.get_assessment(assessment_id)
     with direct_vm.expect_revert("MAX_ATTEMPTS_REACHED"):
@@ -126,13 +129,20 @@ def test_terminal_certification_rejects_every_followup(
     contract.assess(assessment_id)
     before = contract.get_assessment(assessment_id)
 
-    for method in [contract.assess, contract.refresh, contract.expire_assessment, contract.close_after_max_attempts]:
+    for method in [
+        contract.assess,
+        contract.refresh,
+        contract.expire_assessment,
+        contract.close_after_max_attempts,
+    ]:
         with direct_vm.expect_revert("INVALID_STATE"):
             method(assessment_id)
         assert contract.get_assessment(assessment_id) == before
 
 
-def test_close_rejects_before_max_attempts(contract, direct_vm, direct_alice, direct_charlie):
+def test_close_rejects_before_max_attempts(
+    contract, direct_vm, direct_alice, direct_charlie
+):
     assessment_id = register(contract, direct_vm, direct_alice)
     action_required(contract, direct_vm, assessment_id, direct_charlie)
     with direct_vm.expect_revert("MAX_ATTEMPTS_NOT_REACHED"):

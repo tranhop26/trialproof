@@ -181,7 +181,7 @@ class TrialProof(gl.Contract):
 		if any(not isinstance(item,int)or isinstance(item,bool)for item in matched+missing):return _A
 		if matched!=sorted(set(matched))or missing!=sorted(set(missing)):return _A
 		if set(matched).intersection(missing):return _A
-		return matched+missing==sorted(matched+missing)and sorted(matched+missing)==list(range(count))
+		return sorted(matched+missing)==list(range(count))
 	def _semantically_equivalent(self,mine:dict,theirs:dict)->bool:
 		decisive_keys=[_U,_V,_C,_R,_X,_d,_Y,_Z,_O,_G]
 		try:

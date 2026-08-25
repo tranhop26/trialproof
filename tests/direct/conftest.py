@@ -12,21 +12,27 @@ def _inject_message_to_fd0_windows(vm):
     from genlayer.py.types import Address
 
     sender = Address(vm.sender) if isinstance(vm.sender, bytes) else vm.sender
-    contract = Address(vm._contract_address) if isinstance(vm._contract_address, bytes) else vm._contract_address
+    contract = (
+        Address(vm._contract_address)
+        if isinstance(vm._contract_address, bytes)
+        else vm._contract_address
+    )
     origin = Address(vm.origin) if isinstance(vm.origin, bytes) else vm.origin
-    encoded = calldata.encode({
-        "contract_address": contract,
-        "sender_address": sender,
-        "origin_address": origin,
-        "stack": [],
-        "value": vm._value,
-        "datetime": vm._datetime,
-        "is_init": False,
-        "chain_id": vm._chain_id,
-        "entry_kind": 0,
-        "entry_data": b"",
-        "entry_stage_data": None,
-    })
+    encoded = calldata.encode(
+        {
+            "contract_address": contract,
+            "sender_address": sender,
+            "origin_address": origin,
+            "stack": [],
+            "value": vm._value,
+            "datetime": vm._datetime,
+            "is_init": False,
+            "chain_id": vm._chain_id,
+            "entry_kind": 0,
+            "entry_data": b"",
+            "entry_stage_data": None,
+        }
+    )
     fd, path = tempfile.mkstemp()
     os.write(fd, encoded)
     os.lseek(fd, 0, os.SEEK_SET)

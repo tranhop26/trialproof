@@ -24,11 +24,17 @@ EXPECTED_PUBLIC_METHODS = {
 NCT_ID = "NCT01234567"
 VERSION_URL = "https://clinicaltrials.gov/api/v2/version"
 FIELDS = "NCTId,LeadSponsorName,OverallStatus,PrimaryCompletionDate,ResultsFirstPostDate,PrimaryOutcomeMeasure,PrimaryOutcomeDescription,PrimaryOutcomeTimeFrame,HasResults,OutcomeType,OutcomeMeasureTitle,OutcomeMeasureDescription,OutcomeMeasurementValue"
-STUDY_URL = f"https://clinicaltrials.gov/api/v2/studies/{NCT_ID}?format=json&fields={FIELDS}"
+STUDY_URL = (
+    f"https://clinicaltrials.gov/api/v2/studies/{NCT_ID}?format=json&fields={FIELDS}"
+)
 
 
 def _iso(timestamp: int) -> str:
-    return datetime.fromtimestamp(timestamp, timezone.utc).isoformat().replace("+00:00", "Z")
+    return (
+        datetime.fromtimestamp(timestamp, timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def _study() -> dict:
@@ -45,16 +51,38 @@ def _study() -> dict:
             },
             "outcomesModule": {
                 "primaryOutcomes": [
-                    {"measure": "Change in systolic blood pressure", "description": "Mean change from baseline", "timeFrame": "Week 12"},
-                    {"measure": "Serious adverse events", "description": "Participants with an SAE", "timeFrame": "Through week 12"},
+                    {
+                        "measure": "Change in systolic blood pressure",
+                        "description": "Mean change from baseline",
+                        "timeFrame": "Week 12",
+                    },
+                    {
+                        "measure": "Serious adverse events",
+                        "description": "Participants with an SAE",
+                        "timeFrame": "Through week 12",
+                    },
                 ]
             },
         },
         "resultsSection": {
             "outcomeMeasuresModule": {
                 "outcomeMeasures": [
-                    {"type": "PRIMARY", "title": "Systolic blood pressure change at week 12", "description": "Change from baseline", "classes": [{"categories": [{"measurements": [{"value": "-8.2"}]}]}]},
-                    {"type": "PRIMARY", "title": "Number of participants with serious adverse events", "description": "SAE count through week 12", "classes": [{"categories": [{"measurements": [{"value": "3"}]}]}]},
+                    {
+                        "type": "PRIMARY",
+                        "title": "Systolic blood pressure change at week 12",
+                        "description": "Change from baseline",
+                        "classes": [
+                            {"categories": [{"measurements": [{"value": "-8.2"}]}]}
+                        ],
+                    },
+                    {
+                        "type": "PRIMARY",
+                        "title": "Number of participants with serious adverse events",
+                        "description": "SAE count through week 12",
+                        "classes": [
+                            {"categories": [{"measurements": [{"value": "3"}]}]}
+                        ],
+                    },
                 ]
             }
         },
@@ -93,7 +121,11 @@ def _mock_context(timestamp: int) -> dict:
                         {"version": "2.0.1", "dataTimestamp": _iso(timestamp)}
                     ),
                 },
-                STUDY_URL: {"method": "GET", "status": 200, "body": json.dumps(_study())},
+                STUDY_URL: {
+                    "method": "GET",
+                    "status": 200,
+                    "body": json.dumps(_study()),
+                },
             }
         },
     )
@@ -150,9 +182,16 @@ def test_mock_context_has_five_validators_and_bound_sources():
 
 def test_expected_schema_surface_is_frozen():
     assert EXPECTED_PUBLIC_METHODS == {
-        "assess", "close_after_max_attempts", "expire_assessment", "get_assessment",
-        "get_assessment_by_nct_id", "get_assessment_count", "get_assessment_ids_page",
-        "get_version", "refresh", "register_study",
+        "assess",
+        "close_after_max_attempts",
+        "expire_assessment",
+        "get_assessment",
+        "get_assessment_by_nct_id",
+        "get_assessment_count",
+        "get_assessment_ids_page",
+        "get_version",
+        "refresh",
+        "register_study",
     }
 
 
@@ -182,9 +221,13 @@ def test_trialproof_finalized_rpc_consensus_and_readback(
         registered["consensus_data"]["leader_receipt"][0]["result"]
     )["assessment_id"]
 
-    assessed = contract.connect(rpc_roles["resolver"]).assess(args=[assessment_id]).transact(
-        wait_transaction_status=TransactionStatus.FINALIZED,
-        transaction_context=_mock_context(1_800_000_000),
+    assessed = (
+        contract.connect(rpc_roles["resolver"])
+        .assess(args=[assessment_id])
+        .transact(
+            wait_transaction_status=TransactionStatus.FINALIZED,
+            transaction_context=_mock_context(1_800_000_000),
+        )
     )
     assert tx_execution_succeeded(assessed)
     readback = json.loads(contract.get_assessment(args=[assessment_id]).call())

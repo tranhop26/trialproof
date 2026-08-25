@@ -59,7 +59,9 @@ class TrialProof(gl.Contract):
     @gl.public.write
     def register_study(self, nct_id: str) -> str:
         canonical_nct_id = self._canonical_nct_id(nct_id)
-        self._require(canonical_nct_id not in self.nct_index, "ASSESSMENT_ALREADY_EXISTS")
+        self._require(
+            canonical_nct_id not in self.nct_index, "ASSESSMENT_ALREADY_EXISTS"
+        )
         now = self._transaction_timestamp()
         assessment_id = str(int(self.next_assessment_id))
         assessment = {
@@ -150,9 +152,7 @@ class TrialProof(gl.Contract):
             in {"ACTION_REQUIRED", "REQUEST_MORE_INFO", "UNRESOLVED"},
             "INVALID_STATE",
         )
-        self._require(
-            assessment["attempt"] >= MAX_ATTEMPTS, "MAX_ATTEMPTS_NOT_REACHED"
-        )
+        self._require(assessment["attempt"] >= MAX_ATTEMPTS, "MAX_ATTEMPTS_NOT_REACHED")
         now = self._transaction_timestamp()
         assessment["certified"] = False
         assessment["last_action"] = "CLOSE_AFTER_MAX_ATTEMPTS"
@@ -227,7 +227,9 @@ class TrialProof(gl.Contract):
                 status = response.get("status", response.get("status_code", 0))
                 raw_body = response.get("body", response.get("text"))
             else:
-                status = getattr(response, "status", getattr(response, "status_code", 0))
+                status = getattr(
+                    response, "status", getattr(response, "status_code", 0)
+                )
                 raw_body = getattr(response, "body", None)
             if status != 200:
                 return {"safe": False, "failure_code": "SOURCE_HTTP_ERROR"}
@@ -255,7 +257,11 @@ class TrialProof(gl.Contract):
         }
 
     def _extract_source_snapshot(
-        self, version_data: dict, study_data: dict, expected_nct_id: str, observed_at: int
+        self,
+        version_data: dict,
+        study_data: dict,
+        expected_nct_id: str,
+        observed_at: int,
     ) -> dict:
         if not isinstance(version_data, dict) or not isinstance(study_data, dict):
             return self._unsafe_snapshot("SOURCE_MALFORMED", observed_at)
@@ -265,7 +271,9 @@ class TrialProof(gl.Contract):
             return self._unsafe_snapshot("SOURCE_VERSION_MALFORMED", observed_at)
         try:
             api_timestamp = int(
-                datetime.fromisoformat(timestamp_text.replace("Z", "+00:00")).timestamp()
+                datetime.fromisoformat(
+                    timestamp_text.replace("Z", "+00:00")
+                ).timestamp()
             )
         except Exception:
             return self._unsafe_snapshot("SOURCE_VERSION_MALFORMED", observed_at)
@@ -282,10 +290,16 @@ class TrialProof(gl.Contract):
         if source_nct_id != expected_nct_id:
             return self._unsafe_snapshot("SOURCE_IDENTITY_MISMATCH", observed_at)
         sponsor = identification.get("organization", {}).get("fullName", "")
-        sponsor_identity = self._safe_text(sponsor).casefold() if self._safe_text(sponsor) else ""
+        sponsor_identity = (
+            self._safe_text(sponsor).casefold() if self._safe_text(sponsor) else ""
+        )
         status_module = protocol.get("statusModule", {})
-        completion = status_module.get("primaryCompletionDateStruct", {}).get("date", "")
-        results_posted = status_module.get("resultsFirstPostDateStruct", {}).get("date", "")
+        completion = status_module.get("primaryCompletionDateStruct", {}).get(
+            "date", ""
+        )
+        results_posted = status_module.get("resultsFirstPostDateStruct", {}).get(
+            "date", ""
+        )
         overall_status = status_module.get("overallStatus", "")
         primary_outcomes = protocol.get("outcomesModule", {}).get("primaryOutcomes")
         reported_outcomes = (
@@ -317,7 +331,11 @@ class TrialProof(gl.Contract):
             snapshot["preliminary"] = "REQUEST_MORE_INFO"
             snapshot["failure_code"] = "PRIMARY_OUTCOMES_MISSING"
             return snapshot
-        if len(primary_outcomes) > MAX_OUTCOMES or not isinstance(reported_outcomes, list) or len(reported_outcomes) > MAX_OUTCOMES:
+        if (
+            len(primary_outcomes) > MAX_OUTCOMES
+            or not isinstance(reported_outcomes, list)
+            or len(reported_outcomes) > MAX_OUTCOMES
+        ):
             return self._unsafe_snapshot("SOURCE_OUTCOMES_UNBOUNDED", observed_at)
         for outcome in primary_outcomes:
             if not isinstance(outcome, dict):
@@ -423,7 +441,9 @@ class TrialProof(gl.Contract):
         }
         return self._canonical_json(payload)
 
-    def _fallback_resolution(self, snapshot: dict, reason: str, observed_at: int) -> dict:
+    def _fallback_resolution(
+        self, snapshot: dict, reason: str, observed_at: int
+    ) -> dict:
         registered = snapshot.get("registered_primary_outcomes", [])
         reported = snapshot.get("reported_outcomes", [])
         safe = snapshot.get("safe") is True
@@ -447,16 +467,22 @@ class TrialProof(gl.Contract):
 
     def _request_more_info_resolution(self, snapshot: dict, observed_at: int) -> dict:
         result = self._fallback_resolution(
-            snapshot, snapshot.get("failure_code", "INVALID_SEMANTIC_RESULT"), observed_at
+            snapshot,
+            snapshot.get("failure_code", "INVALID_SEMANTIC_RESULT"),
+            observed_at,
         )
         result["verdict"] = "REQUEST_MORE_INFO"
-        result["rationale"] = "The official record is accessible but lacks required fields."
+        result["rationale"] = (
+            "The official record is accessible but lacks required fields."
+        )
         result["source_safe"] = True
         result["source_fresh"] = True
         return result
 
     def _normalize_resolution(self, value, snapshot: dict, observed_at: int) -> dict:
-        fallback = self._fallback_resolution(snapshot, "INVALID_SEMANTIC_RESULT", observed_at)
+        fallback = self._fallback_resolution(
+            snapshot, "INVALID_SEMANTIC_RESULT", observed_at
+        )
         if snapshot.get("safe") is not True:
             return self._fallback_resolution(
                 snapshot, snapshot.get("failure_code", "SOURCE_MALFORMED"), observed_at
@@ -510,7 +536,11 @@ class TrialProof(gl.Contract):
             ):
                 return fallback
             if verdict == "ACTION_REQUIRED" and (
-                not missing or not reasons or not set(reasons).issubset({"MISSING_PRIMARY_RESULT", "RESULTS_NOT_POSTED"})
+                not missing
+                or not reasons
+                or not set(reasons).issubset(
+                    {"MISSING_PRIMARY_RESULT", "RESULTS_NOT_POSTED"}
+                )
             ):
                 return fallback
             result = dict(value)
@@ -530,13 +560,16 @@ class TrialProof(gl.Contract):
     def _valid_index_partition(self, matched, missing, count: int) -> bool:
         if not isinstance(matched, list) or not isinstance(missing, list):
             return False
-        if any(not isinstance(item, int) or isinstance(item, bool) for item in matched + missing):
+        if any(
+            not isinstance(item, int) or isinstance(item, bool)
+            for item in matched + missing
+        ):
             return False
         if matched != sorted(set(matched)) or missing != sorted(set(missing)):
             return False
         if set(matched).intersection(missing):
             return False
-        return matched + missing == sorted(matched + missing) and sorted(matched + missing) == list(range(count))
+        return sorted(matched + missing) == list(range(count))
 
     def _semantically_equivalent(self, mine: dict, theirs: dict) -> bool:
         decisive_keys = [
@@ -568,7 +601,11 @@ class TrialProof(gl.Contract):
                 return False
             theirs = leader_result.calldata
             mine = leader_fn()
-            return self._is_canonical_resolution(theirs) and self._is_canonical_resolution(mine) and self._semantically_equivalent(mine, theirs)
+            return (
+                self._is_canonical_resolution(theirs)
+                and self._is_canonical_resolution(mine)
+                and self._semantically_equivalent(mine, theirs)
+            )
         except Exception:
             return False
 
@@ -576,7 +613,9 @@ class TrialProof(gl.Contract):
         try:
             if not isinstance(result, dict) or result.get("verdict") not in VERDICTS:
                 return False
-            if result.get("certified") is not (result["verdict"] == "DISCLOSURE_COMPLETE"):
+            if result.get("certified") is not (
+                result["verdict"] == "DISCLOSURE_COMPLETE"
+            ):
                 return False
             if not isinstance(result.get("reason_codes"), list):
                 return False
@@ -603,14 +642,18 @@ class TrialProof(gl.Contract):
                 version_response.get("failure_code", "SOURCE_MALFORMED"), observed_at
             )
             snapshot["nct_id"] = nct_id
-            return self._fallback_resolution(snapshot, snapshot["failure_code"], observed_at)
+            return self._fallback_resolution(
+                snapshot, snapshot["failure_code"], observed_at
+            )
         study_response = self._fetch_json(self._study_url(nct_id))
         if study_response.get("safe") is not True:
             snapshot = self._unsafe_snapshot(
                 study_response.get("failure_code", "SOURCE_MALFORMED"), observed_at
             )
             snapshot["nct_id"] = nct_id
-            return self._fallback_resolution(snapshot, snapshot["failure_code"], observed_at)
+            return self._fallback_resolution(
+                snapshot, snapshot["failure_code"], observed_at
+            )
         snapshot = self._extract_source_snapshot(
             version_response["data"], study_response["data"], nct_id, observed_at
         )
@@ -689,11 +732,15 @@ class TrialProof(gl.Contract):
     def _transaction_timestamp(self) -> int:
         transaction_datetime = gl.message_raw["datetime"]
         return int(
-            datetime.fromisoformat(transaction_datetime.replace("Z", "+00:00")).timestamp()
+            datetime.fromisoformat(
+                transaction_datetime.replace("Z", "+00:00")
+            ).timestamp()
         )
 
     def _canonical_json(self, value) -> str:
-        return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        return json.dumps(
+            value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
 
     def _require(self, condition: bool, code: str) -> None:
         if not condition:
