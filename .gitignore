@@ -9,3 +9,4 @@ coverage/
 *.pyc
 deployments/*.json
 !deployments/.gitkeep
+!deployments/studionet.json

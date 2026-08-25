@@ -2,6 +2,10 @@
 
 TrialProof is an independent GenLayer Intelligent Contract that makes an authoritative on-chain assessment of whether a ClinicalTrials.gov record reports results for every registered primary outcome.
 
+Verified Studionet deployment (`trialproof/1.0.1`): [contract](https://explorer-studio.genlayer.com/address/0x1354c6A89f92F9ccE45d7aAdC2b9bC372b51b158). The exact deployment and sample evidence is recorded in `deployments/studionet.json`.
+
+Live evidence: [deployment transaction](https://explorer-studio.genlayer.com/tx/0xac22c7627f1cb6c91bf8627b3dd7822cf999906b2079dd748e48e8d71e18672b), [registration transaction](https://explorer-studio.genlayer.com/tx/0xa47427ede94a6d9e049c28239935a22ef495825bacaa754a0fc81493f54d913b), and [assessment transaction](https://explorer-studio.genlayer.com/tx/0xb3c07509855e70e985225a28cdb6d65a63c5ca15ff28ce586553f83e12214aa5).
+
 It is intentionally narrow: one contract, one disclosure workflow, safe retry/timeout branches, deployment/readback tooling, and no frontend or financial mechanism.
 
 ## Decision and consequence
@@ -138,6 +142,6 @@ Registration, assessment, refresh, expiry, and closure are permissionless becaus
 - Semantic matching is limited to the bounded fields returned by the official API projection.
 - One assessment exists per NCT ID and policy version; policy changes require a new frozen deployment.
 - No multi-registry cross-check, appeal governance, medical interpretation, or legal determination is provided.
-- Until `deployments/bradbury.json` and the live proof matrix contain verified values, there is no claimed live deployment.
+- The immutable `1.0.0` trial instance is superseded because it safely returned `REQUEST_MORE_INFO` after an upstream sponsor-path mismatch. The verified deployment is the separate frozen `1.0.1` successor above.
 
 See [recovery runbook](docs/recovery-runbook.md) for failure handling.
