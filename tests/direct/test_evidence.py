@@ -17,7 +17,7 @@ def contract(direct_vm, direct_deploy):
 
 @pytest.fixture
 def fresh_version():
-    return {"version": "2.0.1", "dataTimestamp": "2027-01-15T08:00:00Z"}
+    return {"apiVersion": "2.0.1", "dataTimestamp": "2027-01-15T08:00:00"}
 
 
 @pytest.fixture
@@ -83,6 +83,8 @@ def test_contract_constructs_only_official_urls(contract):
     )
     assert "format=json" in study_url
     assert "fields=" in study_url
+    assert "OutcomeMeasureType" in study_url
+    assert "OutcomeType" not in study_url
     assert "http://" not in study_url
 
 
@@ -99,16 +101,19 @@ def test_identity_mismatch_is_unsafe(contract, fresh_version, complete_study):
 
 def test_stale_future_or_malformed_version_is_unsafe(contract, complete_study):
     cases = [
-        ({"version": "2.0.1", "dataTimestamp": "2027-01-10T07:59:59Z"}, "SOURCE_STALE"),
         (
-            {"version": "2.0.1", "dataTimestamp": "2027-01-15T08:05:01Z"},
+            {"apiVersion": "2.0.1", "dataTimestamp": "2027-01-10T07:59:59"},
+            "SOURCE_STALE",
+        ),
+        (
+            {"apiVersion": "2.0.1", "dataTimestamp": "2027-01-15T08:05:01"},
             "SOURCE_FUTURE",
         ),
         (
-            {"version": "2.0.1", "dataTimestamp": "not-a-date"},
+            {"apiVersion": "2.0.1", "dataTimestamp": "not-a-date"},
             "SOURCE_VERSION_MALFORMED",
         ),
-        ({"dataTimestamp": "2027-01-15T08:00:00Z"}, "SOURCE_VERSION_MALFORMED"),
+        ({"dataTimestamp": "2027-01-15T08:00:00"}, "SOURCE_VERSION_MALFORMED"),
     ]
     for version, expected_code in cases:
         result = contract._extract_source_snapshot(

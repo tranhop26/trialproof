@@ -62,7 +62,7 @@ _B='failure_code'
 _A=False
 import genlayer as gl
 from genlayer import*
-from datetime import datetime
+from datetime import datetime,timezone
 import hashlib,json,unicodedata
 VERSION='trialproof/1.0.0'
 POLICY_VERSION='trialproof-disclosure/1'
@@ -77,7 +77,7 @@ MAX_SOURCE_FUTURE_SKEW_SECONDS=300
 MAX_OUTCOMES=32
 MAX_TEXT_LENGTH=1024
 VERSION_URL='https://clinicaltrials.gov/api/v2/version'
-STUDY_FIELDS='NCTId,LeadSponsorName,OverallStatus,PrimaryCompletionDate,ResultsFirstPostDate,PrimaryOutcomeMeasure,PrimaryOutcomeDescription,PrimaryOutcomeTimeFrame,HasResults,OutcomeType,OutcomeMeasureTitle,OutcomeMeasureDescription,OutcomeMeasurementValue'
+STUDY_FIELDS='NCTId,LeadSponsorName,OverallStatus,PrimaryCompletionDate,ResultsFirstPostDate,PrimaryOutcomeMeasure,PrimaryOutcomeDescription,PrimaryOutcomeTimeFrame,HasResults,OutcomeMeasureType,OutcomeMeasureTitle,OutcomeMeasureDescription,OutcomeMeasurementValue'
 VERDICTS={_S,_a,_I,_P}
 REASON_CODES={_w,_m,_n,_x,_o,_y,_z,_A0,_A1,_A2,_J,_p,_A3,_A4,_A5,_q,_A6}
 class TrialProof(gl.Contract):
@@ -128,9 +128,12 @@ class TrialProof(gl.Contract):
 	def _extract_source_snapshot(self,version_data:dict,study_data:dict,expected_nct_id:str,observed_at:int)->dict:
 		F='type';E='title';D='measure';C='primary_completion_date';B='date';A='description'
 		if not isinstance(version_data,dict)or not isinstance(study_data,dict):return self._unsafe_snapshot(_J,observed_at)
-		api_version=version_data.get('version');timestamp_text=version_data.get('dataTimestamp')
+		api_version=version_data.get('apiVersion');timestamp_text=version_data.get('dataTimestamp')
 		if not isinstance(api_version,str)or not isinstance(timestamp_text,str):return self._unsafe_snapshot(_q,observed_at)
-		try:api_timestamp=int(datetime.fromisoformat(timestamp_text.replace('Z','+00:00')).timestamp())
+		try:
+			parsed_timestamp=datetime.fromisoformat(timestamp_text.replace('Z','+00:00'))
+			if parsed_timestamp.tzinfo is _K:parsed_timestamp=parsed_timestamp.replace(tzinfo=timezone.utc)
+			api_timestamp=int(parsed_timestamp.timestamp())
 		except Exception:return self._unsafe_snapshot(_q,observed_at)
 		if api_timestamp>observed_at+MAX_SOURCE_FUTURE_SKEW_SECONDS:return self._unsafe_snapshot(_z,observed_at)
 		if observed_at-api_timestamp>MAX_SOURCE_AGE_SECONDS:return self._unsafe_snapshot(_A4,observed_at)

@@ -7,7 +7,7 @@ from test_registry import warp
 
 
 OBSERVED_AT = 1_800_000_000
-VERSION_DATA = {"version": "2.0.1", "dataTimestamp": "2027-01-15T08:00:00Z"}
+VERSION_DATA = {"apiVersion": "2.0.1", "dataTimestamp": "2027-01-15T08:00:00"}
 
 
 def study_data():

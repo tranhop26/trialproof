@@ -1,7 +1,7 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 import genlayer as gl
 from genlayer import *
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 import unicodedata
@@ -19,7 +19,7 @@ MAX_SOURCE_FUTURE_SKEW_SECONDS = 300
 MAX_OUTCOMES = 32
 MAX_TEXT_LENGTH = 1_024
 VERSION_URL = "https://clinicaltrials.gov/api/v2/version"
-STUDY_FIELDS = "NCTId,LeadSponsorName,OverallStatus,PrimaryCompletionDate,ResultsFirstPostDate,PrimaryOutcomeMeasure,PrimaryOutcomeDescription,PrimaryOutcomeTimeFrame,HasResults,OutcomeType,OutcomeMeasureTitle,OutcomeMeasureDescription,OutcomeMeasurementValue"
+STUDY_FIELDS = "NCTId,LeadSponsorName,OverallStatus,PrimaryCompletionDate,ResultsFirstPostDate,PrimaryOutcomeMeasure,PrimaryOutcomeDescription,PrimaryOutcomeTimeFrame,HasResults,OutcomeMeasureType,OutcomeMeasureTitle,OutcomeMeasureDescription,OutcomeMeasurementValue"
 VERDICTS = {
     "DISCLOSURE_COMPLETE",
     "ACTION_REQUIRED",
@@ -265,16 +265,17 @@ class TrialProof(gl.Contract):
     ) -> dict:
         if not isinstance(version_data, dict) or not isinstance(study_data, dict):
             return self._unsafe_snapshot("SOURCE_MALFORMED", observed_at)
-        api_version = version_data.get("version")
+        api_version = version_data.get("apiVersion")
         timestamp_text = version_data.get("dataTimestamp")
         if not isinstance(api_version, str) or not isinstance(timestamp_text, str):
             return self._unsafe_snapshot("SOURCE_VERSION_MALFORMED", observed_at)
         try:
-            api_timestamp = int(
-                datetime.fromisoformat(
-                    timestamp_text.replace("Z", "+00:00")
-                ).timestamp()
+            parsed_timestamp = datetime.fromisoformat(
+                timestamp_text.replace("Z", "+00:00")
             )
+            if parsed_timestamp.tzinfo is None:
+                parsed_timestamp = parsed_timestamp.replace(tzinfo=timezone.utc)
+            api_timestamp = int(parsed_timestamp.timestamp())
         except Exception:
             return self._unsafe_snapshot("SOURCE_VERSION_MALFORMED", observed_at)
         if api_timestamp > observed_at + MAX_SOURCE_FUTURE_SKEW_SECONDS:

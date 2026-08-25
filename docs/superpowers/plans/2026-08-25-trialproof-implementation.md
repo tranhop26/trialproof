@@ -61,11 +61,17 @@ Use the exact Python and Node dependency versions from the plan header. Configur
 - [ ] **Step 2: Write failing registration tests**
 
 ```python
-def test_registers_canonical_nct_and_rejects_duplicate(contract, direct_vm, direct_alice):
+def test_registers_canonical_nct_and_rejects_duplicate(
+    contract, direct_vm, direct_alice
+):
     direct_vm.sender = direct_alice
     direct_vm.block_timestamp = 1_800_000_000
     receipt = json.loads(contract.register_study("nct01234567"))
-    assert receipt == {"action": "REGISTER_STUDY", "assessment_id": "1", "state": "REGISTERED"}
+    assert receipt == {
+        "action": "REGISTER_STUDY",
+        "assessment_id": "1",
+        "state": "REGISTERED",
+    }
     stored = json.loads(contract.get_assessment("1"))
     assert stored["nct_id"] == "NCT01234567"
     assert stored["registrant"] == str(direct_alice).lower()
@@ -73,8 +79,13 @@ def test_registers_canonical_nct_and_rejects_duplicate(contract, direct_vm, dire
     with direct_vm.expect_revert("ASSESSMENT_ALREADY_EXISTS"):
         contract.register_study("NCT01234567")
 
-@pytest.mark.parametrize("value", ["", "NCT123", "NCT0123456X", " NCT01234567", "NCT01234567\n"])
-def test_rejects_noncanonical_or_ambiguous_nct_ids(contract, direct_vm, direct_alice, value):
+
+@pytest.mark.parametrize(
+    "value", ["", "NCT123", "NCT0123456X", " NCT01234567", "NCT01234567\n"]
+)
+def test_rejects_noncanonical_or_ambiguous_nct_ids(
+    contract, direct_vm, direct_alice, value
+):
     direct_vm.sender = direct_alice
     with direct_vm.expect_revert("INVALID_NCT_ID"):
         contract.register_study(value)
@@ -122,9 +133,12 @@ def test_contract_constructs_only_official_urls(contract):
     )
     assert "fields=" in contract._study_url("NCT01234567")
 
+
 def test_identity_mismatch_is_unsafe(contract, fresh_version, complete_study):
     complete_study["protocolSection"]["identificationModule"]["nctId"] = "NCT76543210"
-    result = contract._extract_source_snapshot(fresh_version, complete_study, "NCT01234567", 1_800_000_000)
+    result = contract._extract_source_snapshot(
+        fresh_version, complete_study, "NCT01234567", 1_800_000_000
+    )
     assert result["safe"] is False
     assert result["failure_code"] == "SOURCE_IDENTITY_MISMATCH"
 ```
@@ -168,13 +182,24 @@ Commit: `feat: bind official trial evidence and replay domains`
 - [ ] **Step 1: Write failing semantic-equivalence tests**
 
 ```python
-def test_equivalence_ignores_rationale_but_rejects_decision_change(contract, complete_resolution):
+def test_equivalence_ignores_rationale_but_rejects_decision_change(
+    contract, complete_resolution
+):
     wording_change = dict(complete_resolution, rationale="Different wording")
-    assert contract._semantically_equivalent(complete_resolution, wording_change) is True
-    changed = dict(complete_resolution, verdict="ACTION_REQUIRED", reason_codes=["MISSING_PRIMARY_RESULT"])
+    assert (
+        contract._semantically_equivalent(complete_resolution, wording_change) is True
+    )
+    changed = dict(
+        complete_resolution,
+        verdict="ACTION_REQUIRED",
+        reason_codes=["MISSING_PRIMARY_RESULT"],
+    )
     assert contract._semantically_equivalent(complete_resolution, changed) is False
 
-def test_equivalence_rejects_different_missing_outcome_set(contract, required_resolution):
+
+def test_equivalence_rejects_different_missing_outcome_set(
+    contract, required_resolution
+):
     changed = dict(required_resolution, missing_registered_indices=[0, 2])
     assert contract._semantically_equivalent(required_resolution, changed) is False
 ```
@@ -241,9 +266,16 @@ Assert repeated expiry, refresh, closure, assessment of a terminal case, early c
 
 ```python
 EXPECTED = {
-    "assess", "close_after_max_attempts", "expire_assessment", "get_assessment",
-    "get_assessment_by_nct_id", "get_assessment_count", "get_assessment_ids_page",
-    "get_version", "refresh", "register_study",
+    "assess",
+    "close_after_max_attempts",
+    "expire_assessment",
+    "get_assessment",
+    "get_assessment_by_nct_id",
+    "get_assessment_count",
+    "get_assessment_ids_page",
+    "get_version",
+    "refresh",
+    "register_study",
 }
 assert public_method_names(contract_module.TrialProof) == EXPECTED
 ```

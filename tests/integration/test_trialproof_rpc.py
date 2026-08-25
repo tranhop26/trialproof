@@ -23,7 +23,7 @@ EXPECTED_PUBLIC_METHODS = {
 }
 NCT_ID = "NCT01234567"
 VERSION_URL = "https://clinicaltrials.gov/api/v2/version"
-FIELDS = "NCTId,LeadSponsorName,OverallStatus,PrimaryCompletionDate,ResultsFirstPostDate,PrimaryOutcomeMeasure,PrimaryOutcomeDescription,PrimaryOutcomeTimeFrame,HasResults,OutcomeType,OutcomeMeasureTitle,OutcomeMeasureDescription,OutcomeMeasurementValue"
+FIELDS = "NCTId,LeadSponsorName,OverallStatus,PrimaryCompletionDate,ResultsFirstPostDate,PrimaryOutcomeMeasure,PrimaryOutcomeDescription,PrimaryOutcomeTimeFrame,HasResults,OutcomeMeasureType,OutcomeMeasureTitle,OutcomeMeasureDescription,OutcomeMeasurementValue"
 STUDY_URL = (
     f"https://clinicaltrials.gov/api/v2/studies/{NCT_ID}?format=json&fields={FIELDS}"
 )
@@ -118,7 +118,10 @@ def _mock_context(timestamp: int) -> dict:
                     "method": "GET",
                     "status": 200,
                     "body": json.dumps(
-                        {"version": "2.0.1", "dataTimestamp": _iso(timestamp)}
+                        {
+                            "apiVersion": "2.0.1",
+                            "dataTimestamp": _iso(timestamp).removesuffix("Z"),
+                        }
                     ),
                 },
                 STUDY_URL: {
