@@ -121,7 +121,7 @@ npx tsx scripts/run-sample.ts deployments/studionet-v1.1.0.json NCT04516746 --li
 npx tsx scripts/readback.ts deployments/studionet-v1.1.0.json 1 NCT04516746
 ```
 
-No `trialproof/1.1.0` live assessment sample is recorded yet. Before any user-confirmed sample action, fetch the official source again and apply the deployed contract's eligible-`PRIMARY` and nested-measurement validation locally. The historical 1.0.1 transactions above do not prove 1.1.0 runtime behavior. A 1.1.0 assessment result is established only after its own transaction is `FINALIZED`, execution is `FINISHED_WITH_RETURN`, and its contract state is read back. Submission of a transaction hash alone is not success.
+A `trialproof/1.1.0` live happy-path sample is recorded for `NCT04516746`: [registration](https://explorer-studio.genlayer.com/tx/0xf5396825e1a23787071a34ea5c3b896bd3e3d7d4d2a0051378577a248ff6af55) and [assessment](https://explorer-studio.genlayer.com/tx/0xa52f883c39aad1edf2dd00c9fe18b6ecb4445c4637792b16e2b1b3eb1515f514). Both transactions reached `FINALIZED`, `MAJORITY_AGREE`, and successful leader execution. Contract readback by assessment ID and NCT ID matched: `DISCLOSURE_COMPLETE`, certified, all four registered primary outcomes matched to four eligible reported `PRIMARY` outcomes with non-empty measurement data, and none were missing. A live 1.1.0 important non-certifying branch is not recorded yet; its edge-case behavior remains supported by local and CI regression tests.
 
 ## Public methods
 
