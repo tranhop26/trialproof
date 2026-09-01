@@ -1,7 +1,11 @@
 import { readFile } from "node:fs/promises";
 
 import { assertExpectedSchemaSurface } from "../deploy/001_deploy_trialproof.js";
-import { sha256, type DeploymentManifest } from "./write-manifest.js";
+import {
+  isSupportedNetwork,
+  sha256,
+  type DeploymentManifest,
+} from "./write-manifest.js";
 
 
 type ContractSchema = { methods?: Record<string, unknown> };
@@ -73,10 +77,7 @@ function validateManifest(manifest: DeploymentManifest, expectedSource: Uint8Arr
   if (manifest.version !== CANDIDATE_VERSION) {
     throw new Error("MANIFEST_VERSION_MISMATCH");
   }
-  if (manifest.network !== "testnet-bradbury") {
-    throw new Error("MANIFEST_NETWORK_MISMATCH");
-  }
-  if (manifest.chainId !== 4221) {
+  if (!isSupportedNetwork(manifest.network, manifest.chainId)) {
     throw new Error("MANIFEST_CHAIN_ID_MISMATCH");
   }
   if (!ADDRESS.test(manifest.address)) {
@@ -184,13 +185,19 @@ export async function runReadback(options: ReadbackOptions): Promise<ReadbackRep
 }
 
 
-async function createLiveClient(privateKey: `0x${string}`): Promise<ReadbackClient> {
-  const [{ createAccount, createClient }, { testnetBradbury }] = await Promise.all([
+async function createLiveClient(
+  privateKey: `0x${string}`,
+  manifest: DeploymentManifest,
+): Promise<ReadbackClient> {
+  const [{ createAccount, createClient }, { studionet, testnetBradbury }] = await Promise.all([
     import("genlayer-js"),
     import("genlayer-js/chains"),
   ]);
   const account = createAccount(privateKey);
-  const client = createClient({ account, chain: testnetBradbury });
+  const client = createClient({
+    account,
+    chain: manifest.network === "studionet" ? studionet : testnetBradbury,
+  });
   return {
     getCodeSchema: async (source) => client.getContractSchemaForCode(source),
     getRuntimeSchema: async (address) => client.getContractSchema(address as `0x${string}`),
@@ -235,7 +242,7 @@ async function main(): Promise<void> {
   const source = await readFile("deploy/source/trial_proof.py");
   const report = await runReadback({
     assessmentId: process.argv[3],
-    client: await createLiveClient(privateKey),
+    client: await createLiveClient(privateKey, manifest),
     expectedNctId: process.argv[4],
     expectedSourceBytes: source,
     expectedVersion: "trialproof/1.1.0",

@@ -10,7 +10,7 @@ export type DeploymentManifest = {
   deployedAt: string;
   deployer: string;
   initialAssessmentCount: number;
-  network: "testnet-bradbury";
+  network: "studionet" | "testnet-bradbury";
   sourceBytes: number;
   sourceSha256: string;
   transactionHash: string;
@@ -26,6 +26,16 @@ const TRANSACTION = /^0x[0-9a-fA-F]{64}$/;
 const HASH = /^[0-9a-f]{64}$/;
 const DEPENDENCY = /py-genlayer:([a-z0-9]+)/;
 
+export function isSupportedNetwork(
+  network: DeploymentManifest["network"],
+  chainId: number,
+): boolean {
+  return (
+    (network === "studionet" && chainId === 61999) ||
+    (network === "testnet-bradbury" && chainId === 4221)
+  );
+}
+
 
 export function buildDeploymentManifest(
   input: DeploymentManifestInput,
@@ -33,7 +43,7 @@ export function buildDeploymentManifest(
   if (!ADDRESS.test(input.address) || !ADDRESS.test(input.deployer)) {
     throw new Error("MANIFEST_INVALID_ADDRESS");
   }
-  if (input.chainId !== 4221 || input.network !== "testnet-bradbury") {
+  if (!isSupportedNetwork(input.network, input.chainId)) {
     throw new Error("MANIFEST_WRONG_CHAIN");
   }
   if (!TRANSACTION.test(input.transactionHash)) {

@@ -10,3 +10,4 @@ coverage/
 deployments/*.json
 !deployments/.gitkeep
 !deployments/studionet.json
+!deployments/studionet-v1.1.0.json

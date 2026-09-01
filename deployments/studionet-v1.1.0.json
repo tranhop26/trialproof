@@ -1,0 +1,13 @@
+{
+  "address": "0xa13693E7A524Bff515227e48256400d1cB67b221",
+  "chainId": 61999,
+  "dependencyHash": "1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6",
+  "deployedAt": "2026-09-01T01:19:59Z",
+  "deployer": "0x21b45103dd05c43969daF3CbB4277391777e2eC7",
+  "initialAssessmentCount": 0,
+  "network": "studionet",
+  "sourceBytes": 21728,
+  "sourceSha256": "8b1eac2585f6c280506c3609c80103612fb75cd4e8bef0e00234bba2851db13c",
+  "transactionHash": "0x8f8c0a74f51b2fa53df6341bba31991687c4c22f0cf979777d9d37e7ccc50233",
+  "version": "trialproof/1.1.0"
+}

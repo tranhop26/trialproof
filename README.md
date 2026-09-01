@@ -2,11 +2,11 @@
 
 TrialProof is an independent GenLayer Intelligent Contract that makes an authoritative on-chain assessment of whether a ClinicalTrials.gov record reports results for every registered primary outcome.
 
-Historical verified Studionet deployment (`trialproof/1.0.1`): [contract](https://explorer-studio.genlayer.com/address/0x1354c6A89f92F9ccE45d7aAdC2b9bC372b51b158). Its exact deployment and sample evidence is recorded immutably in `deployments/studionet.json`.
+Current verified Studionet deployment (`trialproof/1.1.0`): [contract](https://explorer-studio.genlayer.com/address/0xa13693E7A524Bff515227e48256400d1cB67b221) and [finalized deployment transaction](https://explorer-studio.genlayer.com/tx/0x8f8c0a74f51b2fa53df6341bba31991687c4c22f0cf979777d9d37e7ccc50233). Its exact deployment evidence is recorded in `deployments/studionet-v1.1.0.json`.
 
-`trialproof/1.1.0` is the fixed local candidate. It is not deployed or source-verified on Studionet; a new finalized deployment manifest is required before associating it with any contract address or live transaction.
+The deployed `trialproof/1.1.0` source is byte-for-byte represented by `deploy/source/trial_proof.py` (SHA-256 `8b1eac2585f6c280506c3609c80103612fb75cd4e8bef0e00234bba2851db13c`, 21,728 bytes). The Explorer transaction exposes the same contract source, including `PRIMARY` filtering, nested non-empty measurement validation, and contradictory results-status rejection.
 
-Historical `trialproof/1.0.1` live evidence: [deployment transaction](https://explorer-studio.genlayer.com/tx/0xac22c7627f1cb6c91bf8627b3dd7822cf999906b2079dd748e48e8d71e18672b), happy-path [registration](https://explorer-studio.genlayer.com/tx/0xa47427ede94a6d9e049c28239935a22ef495825bacaa754a0fc81493f54d913b) and [assessment](https://explorer-studio.genlayer.com/tx/0xb3c07509855e70e985225a28cdb6d65a63c5ca15ff28ce586553f83e12214aa5), plus unavailable-source safe-branch [registration](https://explorer-studio.genlayer.com/tx/0x0e1ded7c1f9ba0e8bada2f13339a621dadb0f7e75c045131fc7fc1a227d20934) and [assessment](https://explorer-studio.genlayer.com/tx/0xa25b2654959226167b2bd6be6bf88a93f82e7e0c036576170cf24b291adc7b4b). These transactions do not evidence the undeployed `trialproof/1.1.0` candidate.
+Historical `trialproof/1.0.1` live evidence: [deployment transaction](https://explorer-studio.genlayer.com/tx/0xac22c7627f1cb6c91bf8627b3dd7822cf999906b2079dd748e48e8d71e18672b), happy-path [registration](https://explorer-studio.genlayer.com/tx/0xa47427ede94a6d9e049c28239935a22ef495825bacaa754a0fc81493f54d913b) and [assessment](https://explorer-studio.genlayer.com/tx/0xb3c07509855e70e985225a28cdb6d65a63c5ca15ff28ce586553f83e12214aa5), plus unavailable-source safe-branch [registration](https://explorer-studio.genlayer.com/tx/0x0e1ded7c1f9ba0e8bada2f13339a621dadb0f7e75c045131fc7fc1a227d20934) and [assessment](https://explorer-studio.genlayer.com/tx/0xa25b2654959226167b2bd6be6bf88a93f82e7e0c036576170cf24b291adc7b4b). These historical transactions remain audit evidence for `1.0.1`; only the current deployment transaction and manifest identify the `1.1.0` source.
 
 It is intentionally narrow: one contract, one disclosure workflow, safe retry/timeout branches, deployment/readback tooling, and no frontend or financial mechanism.
 
@@ -117,11 +117,11 @@ After the same action-time wallet confirmation process:
 
 ```powershell
 $env:TRIALPROOF_SAMPLE_CONFIRM = "RUN_TRIALPROOF_SAMPLE"
-npx tsx scripts/run-sample.ts deployments/bradbury.json NCT04516746 --live
-npx tsx scripts/readback.ts deployments/bradbury.json 1 NCT04516746
+npx tsx scripts/run-sample.ts deployments/studionet-v1.1.0.json NCT04516746 --live
+npx tsx scripts/readback.ts deployments/studionet-v1.1.0.json 1 NCT04516746
 ```
 
-No `trialproof/1.1.0` live sample or current API preflight is recorded. Before any user-confirmed 1.1.0 deployment or sample action, fetch the official source again and apply the candidate's eligible-`PRIMARY` and nested-measurement validation locally. The historical 1.0.1 transactions above do not prove 1.1.0 source behavior. A 1.1.0 result is established only after its own transaction is `FINALIZED`, execution is `FINISHED_WITH_RETURN`, and its contract state is read back. Submission of a transaction hash alone is not success.
+No `trialproof/1.1.0` live assessment sample is recorded yet. Before any user-confirmed sample action, fetch the official source again and apply the deployed contract's eligible-`PRIMARY` and nested-measurement validation locally. The historical 1.0.1 transactions above do not prove 1.1.0 runtime behavior. A 1.1.0 assessment result is established only after its own transaction is `FINALIZED`, execution is `FINISHED_WITH_RETURN`, and its contract state is read back. Submission of a transaction hash alone is not success.
 
 ## Public methods
 
@@ -144,6 +144,6 @@ Registration, assessment, refresh, expiry, and closure are permissionless becaus
 - Semantic matching is limited to the bounded fields returned by the official API projection.
 - One assessment exists per NCT ID and policy version; policy changes require a new frozen deployment.
 - No multi-registry cross-check, appeal governance, medical interpretation, or legal determination is provided.
-- The immutable `1.0.0` trial instance is superseded because it safely returned `REQUEST_MORE_INFO` after an upstream sponsor-path mismatch. The historical verified deployment is the separate frozen `1.0.1` successor above; `1.1.0` remains an undeployed candidate.
+- The immutable `1.0.0` trial instance is superseded because it safely returned `REQUEST_MORE_INFO` after an upstream sponsor-path mismatch. The historical frozen `1.0.1` successor remains available for audit; the current `1.1.0` deployment supersedes it for new evidence.
 
 See [recovery runbook](docs/recovery-runbook.md) for failure handling.

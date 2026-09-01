@@ -66,6 +66,17 @@ function environment(name: string): string | undefined {
 
 
 describe("runSample", () => {
+  test("accepts a Studionet manifest paired with chain ID 61999", async () => {
+    const report = await runSample({
+      client: client(),
+      getEnv: (name) => name === "TRIALPROOF_SAMPLE_CONFIRM" ? "RUN_TRIALPROOF_SAMPLE" : privateKey,
+      manifest: { ...manifest, chainId: 61999, network: "studionet" },
+      mutationMode: "live",
+      nctId: "NCT01234567",
+    });
+    expect(report.registrationFinalized).toBe(true);
+  });
+
   test("requires explicit live mode and confirmation sentinel", async () => {
     await expect(
       runSample({ client: client(), getEnv: environment, manifest, nctId: "NCT01234567" }),

@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 
-import type { DeploymentManifest } from "./write-manifest.js";
+import {
+  isSupportedNetwork,
+  type DeploymentManifest,
+} from "./write-manifest.js";
 
 
 export type SampleReceipt = {
@@ -69,8 +72,7 @@ function validateCandidateManifest(manifest: DeploymentManifest): void {
     throw new Error("SAMPLE_INVALID_SOURCE_IDENTITY");
   }
   if (
-    manifest.chainId !== 4221 ||
-    manifest.network !== "testnet-bradbury" ||
+    !isSupportedNetwork(manifest.network, manifest.chainId) ||
     !ADDRESS.test(manifest.address)
   ) {
     throw new Error("SAMPLE_INVALID_MANIFEST");
@@ -179,14 +181,20 @@ export async function runSample(options: SampleOptions): Promise<SampleReport> {
 }
 
 
-async function createLiveClient(privateKey: `0x${string}`): Promise<SampleClient> {
-  const [{ createAccount, createClient }, { testnetBradbury }, types] = await Promise.all([
+async function createLiveClient(
+  privateKey: `0x${string}`,
+  manifest: DeploymentManifest,
+): Promise<SampleClient> {
+  const [{ createAccount, createClient }, { studionet, testnetBradbury }, types] = await Promise.all([
     import("genlayer-js"),
     import("genlayer-js/chains"),
     import("genlayer-js/types"),
   ]);
   const account = createAccount(privateKey);
-  const client = createClient({ account, chain: testnetBradbury });
+  const client = createClient({
+    account,
+    chain: manifest.network === "studionet" ? studionet : testnetBradbury,
+  });
   return {
     getCallerAddress: async () => account.address,
     readAssessmentByNctId: async (address, nctId) =>
@@ -237,7 +245,7 @@ async function main(): Promise<void> {
   if (!privateKey) throw new Error("SAMPLE_INVALID_PRIVATE_KEY");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as DeploymentManifest;
   const report = await runSample({
-    client: await createLiveClient(privateKey),
+    client: await createLiveClient(privateKey, manifest),
     manifest,
     mutationMode: "live",
     nctId,

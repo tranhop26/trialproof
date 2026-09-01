@@ -43,9 +43,20 @@ describe("buildDeploymentManifest", () => {
     });
   });
 
+  test("accepts the Studio network and binds it to chain ID 61999", () => {
+    const manifest = buildDeploymentManifest({
+      ...input,
+      chainId: 61999,
+      network: "studionet",
+    });
+    expect(manifest.chainId).toBe(61999);
+    expect(manifest.network).toBe("studionet");
+  });
+
   test.each([
     [{ ...input, address: "0x1234" }, "MANIFEST_INVALID_ADDRESS"],
     [{ ...input, chainId: 1 }, "MANIFEST_WRONG_CHAIN"],
+    [{ ...input, network: "studionet" as const }, "MANIFEST_WRONG_CHAIN"],
     [{ ...input, sourceSha256: "abc" }, "MANIFEST_INVALID_SOURCE_HASH"],
     [{ ...input, initialAssessmentCount: 1 }, "MANIFEST_NONZERO_INITIAL_STATE"],
   ])("rejects invalid bound fields", (candidate, message) => {

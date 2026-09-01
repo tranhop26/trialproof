@@ -50,6 +50,16 @@ function client(overrides: Partial<ReadbackClient> = {}): ReadbackClient {
 
 
 describe("runReadback", () => {
+  test("accepts a Studionet manifest paired with chain ID 61999", async () => {
+    const report = await runReadback({
+      client: client({ readAssessmentCount: async () => 0 }),
+      expectedSourceBytes: source,
+      expectedVersion: "trialproof/1.1.0",
+      manifest: { ...manifest, chainId: 61999, network: "studionet" },
+    });
+    expect(report.assessmentCount).toBe(0);
+  });
+
   test("verifies a 1.1.0 manifest and runtime with authoritative assessment state", async () => {
     const report = await runReadback({
       assessmentId: "1",
