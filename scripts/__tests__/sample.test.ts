@@ -19,7 +19,7 @@ const manifest: DeploymentManifest = {
   sourceBytes: 100,
   sourceSha256: "c".repeat(64),
   transactionHash: `0x${"d".repeat(64)}`,
-  version: "trialproof/1.0.1",
+  version: "trialproof/1.1.0",
 };
 const finalReceipt = { executionStatus: "FINISHED_WITH_RETURN", finalized: true };
 const stored = {
@@ -35,9 +35,21 @@ const stored = {
 
 function client(overrides: Partial<SampleClient> = {}): SampleClient {
   let writes = 0;
+  let reads = 0;
   return {
     getCallerAddress: async () => address,
-    readAssessmentByNctId: async () => JSON.stringify(stored),
+    readAssessmentByNctId: async () =>
+      JSON.stringify(
+        ++reads === 1
+          ? {
+              ...stored,
+              certified: false,
+              evidence_hash: "",
+              resolution: {},
+              state: "REGISTERED",
+            }
+          : stored,
+      ),
     waitForReceipt: async () => finalReceipt,
     writeContract: async () => (++writes === 1 ? registerHash : assessHash),
     ...overrides,
@@ -70,16 +82,18 @@ describe("runSample", () => {
   });
 
   test.each([
+    [client(), "NCT01234567", "SAMPLE_CANDIDATE_VERSION_MISMATCH", { ...manifest, version: "trialproof/1.0.1" }],
+    [client(), "NCT01234567", "SAMPLE_INVALID_SOURCE_IDENTITY", { ...manifest, sourceSha256: "" }],
     [client(), "NCT123", "SAMPLE_INVALID_NCT_ID"],
     [client({ getCallerAddress: async () => "invalid" }), "NCT01234567", "SAMPLE_INVALID_WALLET"],
     [client({ waitForReceipt: async () => ({ finalized: false, executionStatus: "PENDING" }) }), "NCT01234567", "SAMPLE_FINALITY_OR_EXECUTION_FAILED"],
     [client({ readAssessmentByNctId: async () => JSON.stringify({ ...stored, nct_id: "NCT76543210" }) }), "NCT01234567", "SAMPLE_READBACK_MISMATCH"],
-  ])("rejects unsafe sample evidence", async (candidateClient, nctId, message) => {
+  ])("rejects unsafe sample evidence", async (candidateClient, nctId, message, candidateManifest = manifest) => {
     await expect(
       runSample({
         client: candidateClient,
         getEnv: environment,
-        manifest,
+        manifest: candidateManifest,
         mutationMode: "live",
         nctId,
       }),
@@ -99,5 +113,20 @@ describe("runSample", () => {
     expect(report.registrationFinalized).toBe(true);
     expect(report.assessmentFinalized).toBe(true);
     expect(report.readback.state).toBe("DISCLOSURE_COMPLETE");
+  });
+
+  test("rejects an unknown state before sending the assess mutation", async () => {
+    await expect(
+      runSample({
+        client: client({
+          readAssessmentByNctId: async () =>
+            JSON.stringify({ ...stored, certified: false, resolution: { verdict: "FUTURE" }, state: "FUTURE" }),
+        }),
+        getEnv: environment,
+        manifest,
+        mutationMode: "live",
+        nctId: "NCT01234567",
+      }),
+    ).rejects.toThrow("SAMPLE_READBACK_STATE_INVALID");
   });
 });

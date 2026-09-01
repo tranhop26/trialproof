@@ -45,7 +45,23 @@ export type ReadbackReport = {
 };
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const HASH = /^[0-9a-f]{64}$/;
 const TRANSACTION = /^0x[0-9a-fA-F]{64}$/;
+const CANDIDATE_VERSION = "trialproof/1.1.0";
+const ASSESSMENT_STATES = new Set([
+  "REGISTERED",
+  "DISCLOSURE_COMPLETE",
+  "ACTION_REQUIRED",
+  "REQUEST_MORE_INFO",
+  "UNRESOLVED",
+  "CLOSED_UNCERTIFIED",
+]);
+const RESOLVED_STATES = new Set([
+  "DISCLOSURE_COMPLETE",
+  "ACTION_REQUIRED",
+  "REQUEST_MORE_INFO",
+  "UNRESOLVED",
+]);
 
 
 function normalizeTransport(source: string | Uint8Array): Buffer {
@@ -54,6 +70,9 @@ function normalizeTransport(source: string | Uint8Array): Buffer {
 }
 
 function validateManifest(manifest: DeploymentManifest, expectedSource: Uint8Array): void {
+  if (manifest.version !== CANDIDATE_VERSION) {
+    throw new Error("MANIFEST_VERSION_MISMATCH");
+  }
   if (manifest.network !== "testnet-bradbury") {
     throw new Error("MANIFEST_NETWORK_MISMATCH");
   }
@@ -65,6 +84,9 @@ function validateManifest(manifest: DeploymentManifest, expectedSource: Uint8Arr
   }
   if (!TRANSACTION.test(manifest.transactionHash)) {
     throw new Error("MANIFEST_INVALID_TRANSACTION_HASH");
+  }
+  if (!HASH.test(manifest.sourceSha256)) {
+    throw new Error("MANIFEST_INVALID_SOURCE_HASH");
   }
   if (manifest.sourceBytes !== expectedSource.byteLength) {
     throw new Error("MANIFEST_SOURCE_BYTES_MISMATCH");
@@ -88,14 +110,26 @@ function parseAssessment(
   if (expectedNctId && assessment.nct_id !== expectedNctId) {
     throw new Error("ASSESSMENT_NCT_MISMATCH");
   }
+  if (!ASSESSMENT_STATES.has(assessment.state)) {
+    throw new Error("ASSESSMENT_STATE_INVALID");
+  }
+  const verdict = assessment.resolution?.verdict;
   const shouldBeCertified = assessment.state === "DISCLOSURE_COMPLETE";
   if (
     assessment.certified !== shouldBeCertified ||
-    assessment.resolution?.verdict !== assessment.state
+    (assessment.state === "REGISTERED" && verdict !== undefined) ||
+    (RESOLVED_STATES.has(assessment.state) && verdict !== assessment.state) ||
+    (assessment.state === "CLOSED_UNCERTIFIED" &&
+      !["ACTION_REQUIRED", "REQUEST_MORE_INFO", "UNRESOLVED"].includes(
+        String(verdict),
+      ))
   ) {
     throw new Error("ASSESSMENT_CERTIFICATION_INCONSISTENT");
   }
-  if (!/^0x[0-9a-f]{64}$/u.test(assessment.evidence_hash)) {
+  if (
+    assessment.state !== "REGISTERED" &&
+    !/^0x[0-9a-f]{64}$/u.test(assessment.evidence_hash)
+  ) {
     throw new Error("ASSESSMENT_EVIDENCE_HASH_INVALID");
   }
   return assessment;
@@ -204,7 +238,7 @@ async function main(): Promise<void> {
     client: await createLiveClient(privateKey),
     expectedNctId: process.argv[4],
     expectedSourceBytes: source,
-    expectedVersion: "trialproof/1.0.1",
+    expectedVersion: "trialproof/1.1.0",
     manifest,
   });
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);

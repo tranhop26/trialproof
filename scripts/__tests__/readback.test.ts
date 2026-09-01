@@ -32,7 +32,7 @@ const manifest: DeploymentManifest = {
   sourceBytes: source.byteLength,
   sourceSha256: hash,
   transactionHash: `0x${"b".repeat(64)}`,
-  version: "trialproof/1.0.1",
+  version: "trialproof/1.1.0",
 };
 
 
@@ -43,35 +43,64 @@ function client(overrides: Partial<ReadbackClient> = {}): ReadbackClient {
     readAssessment: async () => JSON.stringify(assessment),
     readAssessmentCount: async () => 1,
     readCurrentCode: async () => source,
-    readVersion: async () => "trialproof/1.0.1",
+    readVersion: async () => "trialproof/1.1.0",
     ...overrides,
   };
 }
 
 
 describe("runReadback", () => {
-  test("verifies source, schema, version and authoritative assessment state", async () => {
+  test("verifies a 1.1.0 manifest and runtime with authoritative assessment state", async () => {
     const report = await runReadback({
       assessmentId: "1",
       client: client(),
       expectedNctId: "NCT01234567",
       expectedSourceBytes: source,
-      expectedVersion: "trialproof/1.0.1",
+      expectedVersion: "trialproof/1.1.0",
       manifest,
     });
     expect(report.sourceMatches).toBe(true);
     expect(report.assessment?.state).toBe("DISCLOSURE_COMPLETE");
     expect(report.assessment?.certified).toBe(true);
+    expect(report.version).toBe("trialproof/1.1.0");
+  });
+
+  test.each([
+    {
+      ...assessment,
+      certified: false,
+      evidence_hash: "",
+      resolution: {},
+      state: "REGISTERED",
+    },
+    {
+      ...assessment,
+      certified: false,
+      resolution: { verdict: "ACTION_REQUIRED" },
+      state: "CLOSED_UNCERTIFIED",
+    },
+  ])("accepts contract states with their valid certification semantics", async (candidateAssessment) => {
+    const report = await runReadback({
+      assessmentId: "1",
+      client: client({ readAssessment: async () => JSON.stringify(candidateAssessment) }),
+      expectedNctId: "NCT01234567",
+      expectedSourceBytes: source,
+      expectedVersion: "trialproof/1.1.0",
+      manifest,
+    });
+    expect(report.assessment?.state).toBe(candidateAssessment.state);
   });
 
   test.each([
     [{ ...manifest, chainId: 1 }, client(), "MANIFEST_CHAIN_ID_MISMATCH"],
     [{ ...manifest, sourceSha256: "0".repeat(64) }, client(), "SOURCE_HASH_MISMATCH"],
     [manifest, client({ readCurrentCode: async () => Buffer.from("different") }), "DEPLOYED_CODE_MISMATCH"],
-    [manifest, client({ readVersion: async () => "wrong" }), "VERSION_MISMATCH"],
+    [manifest, client({ readVersion: async () => "trialproof/1.0.1" }), "VERSION_MISMATCH"],
     [manifest, client({ getRuntimeSchema: async () => ({ methods: {} }) }), "RUNTIME_SCHEMA_SURFACE_MISMATCH"],
     [manifest, client({ readAssessment: async () => JSON.stringify({ ...assessment, nct_id: "NCT76543210" }) }), "ASSESSMENT_NCT_MISMATCH"],
     [manifest, client({ readAssessment: async () => JSON.stringify({ ...assessment, state: "ACTION_REQUIRED" }) }), "ASSESSMENT_CERTIFICATION_INCONSISTENT"],
+    [{ ...manifest, version: "trialproof/1.0.1" }, client(), "MANIFEST_VERSION_MISMATCH"],
+    [manifest, client({ readAssessment: async () => JSON.stringify({ ...assessment, certified: false, resolution: { verdict: "FUTURE" }, state: "FUTURE" }) }), "ASSESSMENT_STATE_INVALID"],
   ])("rejects mismatched deployment or state evidence", async (candidateManifest, candidateClient, message) => {
     await expect(
       runReadback({
@@ -79,7 +108,7 @@ describe("runReadback", () => {
         client: candidateClient,
         expectedNctId: "NCT01234567",
         expectedSourceBytes: source,
-        expectedVersion: "trialproof/1.0.1",
+        expectedVersion: "trialproof/1.1.0",
         manifest: candidateManifest,
       }),
     ).rejects.toThrow(message);
