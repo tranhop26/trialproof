@@ -15,8 +15,8 @@
 1. Any address registers a canonical NCT ID. Duplicate registration for the policy version is rejected.
 2. Any address calls `assess` before the original assessment deadline.
 3. Leader and validators independently fetch the fixed API version and study endpoints.
-4. Deterministic guards reject transport, size, freshness, identity and structural failures before semantic interpretation.
-5. For a structurally sufficient snapshot, the LLM maps registered primary outcomes to reported outcomes with data.
+4. Deterministic guards reject transport, size, freshness, identity and structural failures; they parse registered primary outcomes before negative-status routing so deterministic no-results resolutions retain truthful count and missing-index metadata, then filter reported results to eligible `PRIMARY` outcomes with validated non-empty nested measurement values.
+5. Contradictory `hasResults`, results-posted-date, or eligible-primary-data evidence is stored as `UNRESOLVED` before any semantic interpretation. Coherent negative status is deterministic `ACTION_REQUIRED` even when unrelated sponsor or completion fields are missing; otherwise the LLM maps registered primary outcomes only to the filtered eligible results.
 6. The comparative validator checks decision-bearing semantic fields, not raw JSON or rationale wording.
 7. The contract stores the verdict, evidence hash, source timestamp, attempt, revision and action domain.
 8. Clients wait for finality and execution success, then read contract state.
@@ -36,7 +36,7 @@
 
 ## Evidence failures
 
-Unavailable, non-200, oversized, malformed, stale, future-skewed, wrong-NCT or contradictory evidence cannot certify. Missing but accessible record fields become `REQUEST_MORE_INFO`. A nondeterministic transaction that cannot reach consensus does not advance state; after the fixed deadline, an unrelated address can safely record `UNRESOLVED` through `expire_assessment`.
+Unavailable, non-200, oversized, malformed, stale, future-skewed, wrong-NCT, malformed registered-primary structures, structurally invalid nested result data, or contradictory status/date/eligible-primary-data evidence cannot certify and is routed to `UNRESOLVED` before semantic interpretation. Missing but accessible record fields become `REQUEST_MORE_INFO`; coherent no-results still records `ACTION_REQUIRED` when the registered-primary field is merely absent or empty, because status precedence prevents a favorable default. A nondeterministic transaction that cannot reach consensus does not advance state; after the fixed deadline, an unrelated address can safely record `UNRESOLVED` through `expire_assessment`.
 
 ## Recoverability
 

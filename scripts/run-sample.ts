@@ -39,8 +39,16 @@ export type SampleReport = {
 };
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const HASH = /^[0-9a-f]{64}$/;
 const PRIVATE_KEY = /^0x[0-9a-fA-F]{64}$/;
 const NCT = /^NCT[0-9]{8}$/;
+const CANDIDATE_VERSION = "trialproof/1.1.0";
+const FINAL_ASSESSMENT_STATES = new Set([
+  "DISCLOSURE_COMPLETE",
+  "ACTION_REQUIRED",
+  "REQUEST_MORE_INFO",
+  "UNRESOLVED",
+]);
 
 
 function requireFinalized(receipt: SampleReceipt): void {
@@ -49,7 +57,31 @@ function requireFinalized(receipt: SampleReceipt): void {
   }
 }
 
-function parseReadback(value: string, nctId: string): Record<string, unknown> {
+function validateCandidateManifest(manifest: DeploymentManifest): void {
+  if (manifest.version !== CANDIDATE_VERSION) {
+    throw new Error("SAMPLE_CANDIDATE_VERSION_MISMATCH");
+  }
+  if (
+    !HASH.test(manifest.sourceSha256) ||
+    !Number.isSafeInteger(manifest.sourceBytes) ||
+    manifest.sourceBytes <= 0
+  ) {
+    throw new Error("SAMPLE_INVALID_SOURCE_IDENTITY");
+  }
+  if (
+    manifest.chainId !== 4221 ||
+    manifest.network !== "testnet-bradbury" ||
+    !ADDRESS.test(manifest.address)
+  ) {
+    throw new Error("SAMPLE_INVALID_MANIFEST");
+  }
+}
+
+function parseReadback(
+  value: string,
+  nctId: string,
+  expectedStates: ReadonlySet<string>,
+): Record<string, unknown> {
   let assessment: Record<string, unknown>;
   try {
     assessment = JSON.parse(value) as Record<string, unknown>;
@@ -61,6 +93,25 @@ function parseReadback(value: string, nctId: string): Record<string, unknown> {
     typeof assessment.assessment_id !== "string" ||
     typeof assessment.state !== "string" ||
     typeof assessment.certified !== "boolean"
+  ) {
+    throw new Error("SAMPLE_READBACK_MISMATCH");
+  }
+  if (!FINAL_ASSESSMENT_STATES.has(assessment.state as string) && assessment.state !== "REGISTERED") {
+    throw new Error("SAMPLE_READBACK_STATE_INVALID");
+  }
+  if (!expectedStates.has(assessment.state as string)) {
+    throw new Error("SAMPLE_READBACK_STATE_UNEXPECTED");
+  }
+  const resolution = assessment.resolution;
+  const verdict =
+    resolution && typeof resolution === "object"
+      ? (resolution as Record<string, unknown>).verdict
+      : undefined;
+  if (
+    assessment.certified !== (assessment.state === "DISCLOSURE_COMPLETE") ||
+    (assessment.state === "REGISTERED"
+      ? verdict !== undefined
+      : verdict !== assessment.state)
   ) {
     throw new Error("SAMPLE_READBACK_MISMATCH");
   }
@@ -83,13 +134,7 @@ export async function runSample(options: SampleOptions): Promise<SampleReport> {
   if (!NCT.test(options.nctId)) {
     throw new Error("SAMPLE_INVALID_NCT_ID");
   }
-  if (
-    options.manifest.chainId !== 4221 ||
-    options.manifest.network !== "testnet-bradbury" ||
-    !ADDRESS.test(options.manifest.address)
-  ) {
-    throw new Error("SAMPLE_INVALID_MANIFEST");
-  }
+  validateCandidateManifest(options.manifest);
   const caller = await options.client.getCallerAddress(privateKey as `0x${string}`);
   if (!ADDRESS.test(caller)) {
     throw new Error("SAMPLE_INVALID_WALLET");
@@ -107,6 +152,7 @@ export async function runSample(options: SampleOptions): Promise<SampleReport> {
   const registered = parseReadback(
     await options.client.readAssessmentByNctId(options.manifest.address, options.nctId),
     options.nctId,
+    new Set(["REGISTERED"]),
   );
   const assessmentTransactionHash = await options.client.writeContract({
     address: options.manifest.address,
@@ -119,6 +165,7 @@ export async function runSample(options: SampleOptions): Promise<SampleReport> {
   const readback = parseReadback(
     await options.client.readAssessmentByNctId(options.manifest.address, options.nctId),
     options.nctId,
+    FINAL_ASSESSMENT_STATES,
   );
   return {
     assessmentExecutionStatus: assessmentReceipt.executionStatus,

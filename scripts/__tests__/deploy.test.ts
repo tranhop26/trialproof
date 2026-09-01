@@ -30,7 +30,7 @@ function client(overrides: Partial<DeploymentClient> = {}): DeploymentClient {
     getDeployerAddress: async () => address,
     getRuntimeSchema: async () => ({ methods: expectedMethods }),
     readAssessmentCount: async () => 0,
-    readVersion: async () => "trialproof/1.0.1",
+    readVersion: async () => "trialproof/1.1.0",
     ...overrides,
   };
 }
@@ -92,6 +92,19 @@ describe("runDeployment", () => {
         verifyArtifactFreshness: async () => undefined,
       }),
     ).rejects.toThrow(message);
+  });
+
+  test("rejects the superseded deployed version", async () => {
+    const paths = await setup();
+    await expect(
+      runDeployment({
+        ...paths,
+        client: client({ readVersion: async () => "trialproof/1.0.1" }),
+        getEnv: environment,
+        mutationMode: "live",
+        verifyArtifactFreshness: async () => undefined,
+      }),
+    ).rejects.toThrow("DEPLOY_VERSION_MISMATCH");
   });
 
   test("writes a source-bound manifest only after finalized successful readback", async () => {

@@ -6,8 +6,8 @@ import hashlib
 import json
 import unicodedata
 
-VERSION = "trialproof/1.0.1"
-POLICY_VERSION = "trialproof-disclosure/1"
+VERSION = "trialproof/1.1.0"
+POLICY_VERSION = "trialproof-disclosure/2"
 WORKFLOW_VERSION = "trialproof-workflow/1"
 ASSESSMENT_WINDOW_SECONDS = 604_800
 REFRESH_COOLDOWN_SECONDS = 3_600
@@ -33,6 +33,7 @@ REASON_CODES = {
     "MISSING_PRIMARY_RESULT",
     "PRIMARY_OUTCOMES_MISSING",
     "RESULTS_NOT_POSTED",
+    "RESULTS_STATUS_MISSING",
     "SOURCE_FUTURE",
     "SOURCE_HTTP_ERROR",
     "SOURCE_IDENTITY_MISMATCH",
@@ -40,6 +41,7 @@ REASON_CODES = {
     "SOURCE_MALFORMED",
     "SOURCE_OUTCOME_MALFORMED",
     "SOURCE_OUTCOMES_UNBOUNDED",
+    "SOURCE_RESULTS_CONTRADICTORY",
     "SOURCE_STALE",
     "SOURCE_TOO_LARGE",
     "SOURCE_VERSION_MALFORMED",
@@ -316,7 +318,6 @@ class TrialProof(gl.Contract):
             "api_data_timestamp": api_timestamp,
             "api_version": api_version,
             "failure_code": "",
-            "has_results": study_data.get("hasResults") is True,
             "nct_id": source_nct_id,
             "observed_at": observed_at,
             "overall_status": self._safe_text(overall_status) or "",
@@ -328,55 +329,116 @@ class TrialProof(gl.Contract):
             "source_host": "clinicaltrials.gov",
             "sponsor_identity": sponsor_identity,
         }
-        if not sponsor_identity:
-            snapshot["preliminary"] = "REQUEST_MORE_INFO"
-            snapshot["failure_code"] = "SPONSOR_MISSING"
-            return snapshot
-        if not isinstance(primary_outcomes, list) or len(primary_outcomes) == 0:
-            snapshot["preliminary"] = "REQUEST_MORE_INFO"
-            snapshot["failure_code"] = "PRIMARY_OUTCOMES_MISSING"
-            return snapshot
         if (
-            len(primary_outcomes) > MAX_OUTCOMES
-            or not isinstance(reported_outcomes, list)
+            not isinstance(reported_outcomes, list)
             or len(reported_outcomes) > MAX_OUTCOMES
         ):
             return self._unsafe_snapshot("SOURCE_OUTCOMES_UNBOUNDED", observed_at)
-        for outcome in primary_outcomes:
-            if not isinstance(outcome, dict):
-                return self._unsafe_snapshot("SOURCE_OUTCOME_MALFORMED", observed_at)
-            measure = self._safe_text(outcome.get("measure"))
-            if not measure:
-                snapshot["preliminary"] = "REQUEST_MORE_INFO"
-                snapshot["failure_code"] = "PRIMARY_OUTCOMES_MISSING"
-                return snapshot
-            snapshot["registered_primary_outcomes"].append(
-                {
-                    "description": self._safe_text(outcome.get("description")) or "",
-                    "measure": measure,
-                    "time_frame": self._safe_text(outcome.get("timeFrame")) or "",
-                }
-            )
         for outcome in reported_outcomes:
             if not isinstance(outcome, dict):
                 return self._unsafe_snapshot("SOURCE_OUTCOME_MALFORMED", observed_at)
+            outcome_type = self._safe_text(outcome.get("type")) or ""
+            if outcome_type != "PRIMARY":
+                continue
+            measurement_state = self._measurement_state(outcome)
+            if measurement_state == "MALFORMED":
+                return self._unsafe_snapshot("SOURCE_OUTCOME_MALFORMED", observed_at)
+            if measurement_state == "EMPTY":
+                continue
             title = self._safe_text(outcome.get("title"))
             if not title:
                 continue
             snapshot["reported_outcomes"].append(
                 {
                     "description": self._safe_text(outcome.get("description")) or "",
-                    "has_data": bool(outcome.get("classes")),
+                    "has_data": True,
                     "title": title,
-                    "type": self._safe_text(outcome.get("type")) or "",
+                    "type": "PRIMARY",
                 }
             )
+        registered_primary_failure = ""
+        if primary_outcomes is None or primary_outcomes == []:
+            registered_primary_failure = "PRIMARY_OUTCOMES_MISSING"
+        elif not isinstance(primary_outcomes, list):
+            return self._unsafe_snapshot("SOURCE_OUTCOME_MALFORMED", observed_at)
+        elif len(primary_outcomes) > MAX_OUTCOMES:
+            return self._unsafe_snapshot("SOURCE_OUTCOMES_UNBOUNDED", observed_at)
+        else:
+            for outcome in primary_outcomes:
+                if not isinstance(outcome, dict):
+                    return self._unsafe_snapshot(
+                        "SOURCE_OUTCOME_MALFORMED", observed_at
+                    )
+                measure = self._safe_text(outcome.get("measure"))
+                if not measure:
+                    registered_primary_failure = "PRIMARY_OUTCOMES_MISSING"
+                    break
+                snapshot["registered_primary_outcomes"].append(
+                    {
+                        "description": self._safe_text(outcome.get("description"))
+                        or "",
+                        "measure": measure,
+                        "time_frame": self._safe_text(outcome.get("timeFrame")) or "",
+                    }
+                )
+        has_results = study_data.get("hasResults")
+        if not isinstance(has_results, bool):
+            snapshot["preliminary"] = "REQUEST_MORE_INFO"
+            snapshot["failure_code"] = "RESULTS_STATUS_MISSING"
+            return snapshot
+        snapshot["has_results"] = has_results
+        has_posted_date = bool(snapshot["results_first_post_date"])
+        has_primary_data = bool(snapshot["reported_outcomes"])
+        if (has_results, has_posted_date, has_primary_data) not in {
+            (True, True, True),
+            (False, False, False),
+        }:
+            snapshot["safe"] = False
+            snapshot["verdict"] = "UNRESOLVED"
+            snapshot["failure_code"] = "SOURCE_RESULTS_CONTRADICTORY"
+            return snapshot
+        if has_results is False:
+            snapshot["preliminary"] = "ACTION_REQUIRED"
+            snapshot["failure_code"] = "RESULTS_NOT_POSTED"
+            return snapshot
+        if not sponsor_identity:
+            snapshot["preliminary"] = "REQUEST_MORE_INFO"
+            snapshot["failure_code"] = "SPONSOR_MISSING"
+            return snapshot
+        if registered_primary_failure:
+            snapshot["preliminary"] = "REQUEST_MORE_INFO"
+            snapshot["failure_code"] = registered_primary_failure
+            return snapshot
         if not snapshot["primary_completion_date"]:
             snapshot["preliminary"] = "REQUEST_MORE_INFO"
             snapshot["failure_code"] = "COMPLETION_DATE_MISSING"
             return snapshot
         snapshot["preliminary"] = "READY_FOR_SEMANTIC_REVIEW"
         return snapshot
+
+    def _measurement_state(self, outcome: dict) -> str:
+        classes = outcome.get("classes", [])
+        if not isinstance(classes, list):
+            return "MALFORMED"
+        has_valid_measurement = False
+        for outcome_class in classes:
+            if not isinstance(outcome_class, dict):
+                return "MALFORMED"
+            categories = outcome_class.get("categories", [])
+            if not isinstance(categories, list):
+                return "MALFORMED"
+            for category in categories:
+                if not isinstance(category, dict):
+                    return "MALFORMED"
+                measurements = category.get("measurements", [])
+                if not isinstance(measurements, list):
+                    return "MALFORMED"
+                for measurement in measurements:
+                    if not isinstance(measurement, dict):
+                        return "MALFORMED"
+                    if self._safe_text(measurement.get("value")):
+                        has_valid_measurement = True
+        return "VALID" if has_valid_measurement else "EMPTY"
 
     def _safe_text(self, value) -> str | None:
         if not isinstance(value, str):
@@ -421,7 +483,7 @@ class TrialProof(gl.Contract):
             "missing_registered_indices": ["integer index"],
             "nct_id": "canonical NCT identifier",
             "rationale": "short explanation",
-            "reason_codes": ["MISSING_PRIMARY_RESULT or RESULTS_NOT_POSTED"],
+            "reason_codes": ["MISSING_PRIMARY_RESULT"],
             "registered_primary_count": "integer",
             "reported_outcome_count": "integer",
             "source_fresh": True,
@@ -484,6 +546,17 @@ class TrialProof(gl.Contract):
         result["source_fresh"] = True
         return result
 
+    def _action_required_resolution(self, snapshot: dict, observed_at: int) -> dict:
+        result = self._fallback_resolution(snapshot, "RESULTS_NOT_POSTED", observed_at)
+        result["verdict"] = "ACTION_REQUIRED"
+        result["reason_codes"] = ["RESULTS_NOT_POSTED"]
+        result["rationale"] = (
+            "The official record states that results have not been posted."
+        )
+        result["source_safe"] = True
+        result["source_fresh"] = True
+        return result
+
     def _normalize_resolution(self, value, snapshot: dict, observed_at: int) -> dict:
         fallback = self._fallback_resolution(
             snapshot, "INVALID_SEMANTIC_RESULT", observed_at
@@ -536,16 +609,26 @@ class TrialProof(gl.Contract):
                 or any(reason not in REASON_CODES for reason in reasons)
             ):
                 return fallback
-            if verdict == "DISCLOSURE_COMPLETE" and (
-                matched != list(range(registered_count)) or missing or reasons
-            ):
-                return fallback
+            if verdict == "DISCLOSURE_COMPLETE":
+                if (
+                    matched != list(range(registered_count))
+                    or missing
+                    or reasons
+                    or snapshot.get("has_results") is not True
+                    or not snapshot.get("results_first_post_date")
+                    or not snapshot.get("reported_outcomes")
+                    or any(
+                        not isinstance(outcome, dict)
+                        or outcome.get("type") != "PRIMARY"
+                        or outcome.get("has_data") is not True
+                        for outcome in snapshot["reported_outcomes"]
+                    )
+                ):
+                    return fallback
             if verdict == "ACTION_REQUIRED" and (
                 not missing
                 or not reasons
-                or not set(reasons).issubset(
-                    {"MISSING_PRIMARY_RESULT", "RESULTS_NOT_POSTED"}
-                )
+                or not set(reasons).issubset({"MISSING_PRIMARY_RESULT"})
             ):
                 return fallback
             result = dict(value)
@@ -668,6 +751,8 @@ class TrialProof(gl.Contract):
             )
         if snapshot.get("preliminary") == "REQUEST_MORE_INFO":
             return self._request_more_info_resolution(snapshot, observed_at)
+        if snapshot.get("preliminary") == "ACTION_REQUIRED":
+            return self._action_required_resolution(snapshot, observed_at)
         try:
             answer = gl.nondet.exec_prompt(
                 self._build_prompt(snapshot), response_format="json"

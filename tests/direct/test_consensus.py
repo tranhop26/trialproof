@@ -155,6 +155,16 @@ def test_prompt_marks_registry_text_untrusted(contract):
     )
 
 
+def test_prompt_limits_semantic_action_required_reason_to_missing_primary_result(
+    contract,
+):
+    snapshot = contract._extract_source_snapshot(
+        VERSION_DATA, study_data(), "NCT01234567", OBSERVED_AT
+    )
+    prompt = json.loads(contract._build_prompt(snapshot))
+    assert prompt["schema"]["reason_codes"] == ["MISSING_PRIMARY_RESULT"]
+
+
 @pytest.mark.parametrize(
     "candidate",
     [
@@ -213,6 +223,67 @@ def test_missing_semantic_match_becomes_action_required(
     stored = json.loads(contract.get_assessment(assessment_id))
     assert stored["state"] == "ACTION_REQUIRED"
     assert stored["certified"] is False
+
+
+def test_coherent_no_results_bypasses_llm_and_is_action_required(
+    contract, direct_vm, direct_alice, direct_charlie
+):
+    assessment_id = register(contract, direct_vm, direct_alice)
+    source = study_data()
+    source["hasResults"] = False
+    source["protocolSection"]["statusModule"].pop("resultsFirstPostDateStruct")
+    source["resultsSection"]["outcomeMeasuresModule"]["outcomeMeasures"] = []
+    mock_sources(direct_vm, study=source)
+    direct_vm.mock_llm(".*", json.dumps(resolution()))
+    direct_vm.sender = direct_charlie
+    contract.assess(assessment_id)
+    stored = json.loads(contract.get_assessment(assessment_id))
+    assert stored["state"] == "ACTION_REQUIRED"
+    assert stored["certified"] is False
+    assert stored["resolution"]["reason_codes"] == ["RESULTS_NOT_POSTED"]
+    assert stored["resolution"]["registered_primary_count"] == 2
+    assert stored["resolution"]["missing_registered_indices"] == [0, 1]
+
+
+def test_contradictory_results_status_is_unresolved(
+    contract, direct_vm, direct_alice, direct_charlie
+):
+    assessment_id = register(contract, direct_vm, direct_alice)
+    source = study_data()
+    source["hasResults"] = False
+    mock_sources(direct_vm, study=source)
+    direct_vm.mock_llm(".*", json.dumps(resolution()))
+    direct_vm.sender = direct_charlie
+    contract.assess(assessment_id)
+    stored = json.loads(contract.get_assessment(assessment_id))
+    assert stored["state"] == "UNRESOLVED"
+    assert stored["certified"] is False
+    assert stored["resolution"]["reason_codes"] == ["SOURCE_RESULTS_CONTRADICTORY"]
+
+
+def test_complete_resolution_cannot_bypass_snapshot_status_guard(contract):
+    snapshot = contract._extract_source_snapshot(
+        VERSION_DATA, study_data(), "NCT01234567", OBSERVED_AT
+    )
+    snapshot["has_results"] = False
+    normalized = contract._normalize_resolution(resolution(), snapshot, OBSERVED_AT)
+    assert normalized["verdict"] == "UNRESOLVED"
+    assert normalized["certified"] is False
+
+
+def test_llm_cannot_assign_results_not_posted_to_coherent_positive_snapshot(contract):
+    snapshot = contract._extract_source_snapshot(
+        VERSION_DATA, study_data(), "NCT01234567", OBSERVED_AT
+    )
+    candidate = resolution(
+        verdict="ACTION_REQUIRED",
+        reason_codes=["RESULTS_NOT_POSTED"],
+        matched_registered_indices=[],
+        missing_registered_indices=[0, 1],
+    )
+    normalized = contract._normalize_resolution(candidate, snapshot, OBSERVED_AT)
+    assert normalized["verdict"] == "UNRESOLVED"
+    assert normalized["certified"] is False
 
 
 def test_missing_registry_fields_request_more_info_without_llm_approval(
