@@ -15,6 +15,9 @@ on 2026-09-01 for `trialproof/1.1.0`.
 - Live 1.1.0 happy-path registration: [`0xf5396825e1a23787071a34ea5c3b896bd3e3d7d4d2a0051378577a248ff6af55`](https://explorer-studio.genlayer.com/tx/0xf5396825e1a23787071a34ea5c3b896bd3e3d7d4d2a0051378577a248ff6af55), `FINALIZED`, `MAJORITY_AGREE`, leader execution `SUCCESS`.
 - Live 1.1.0 happy-path assessment: [`0xa52f883c39aad1edf2dd00c9fe18b6ecb4445c4637792b16e2b1b3eb1515f514`](https://explorer-studio.genlayer.com/tx/0xa52f883c39aad1edf2dd00c9fe18b6ecb4445c4637792b16e2b1b3eb1515f514), `FINALIZED`, `MAJORITY_AGREE`, leader execution `SUCCESS`.
 - Live assessment readback: assessment `1`, NCT `NCT04516746`, state/verdict `DISCLOSURE_COMPLETE`, `certified=true`, 4 registered primary outcomes, 4 eligible reported `PRIMARY` outcomes, all four matched, none missing, source safe and fresh. Readback by assessment ID and NCT ID was identical.
+- Live 1.1.0 non-certifying registration: [`0x9022f59cf30a938f8c906e4c2ff8b339f64bc7b8ff26f7b1dd3ea4e6354e0ecf`](https://explorer-studio.genlayer.com/tx/0x9022f59cf30a938f8c906e4c2ff8b339f64bc7b8ff26f7b1dd3ea4e6354e0ecf), `FINALIZED`, `MAJORITY_AGREE`, leader execution `SUCCESS`.
+- Live 1.1.0 non-certifying assessment: [`0x00b9073e7e467800f43b4f252a0188342abdfb8881e92496e66bf28b8cf35451`](https://explorer-studio.genlayer.com/tx/0x00b9073e7e467800f43b4f252a0188342abdfb8881e92496e66bf28b8cf35451), `FINALIZED`, `MAJORITY_AGREE`, leader execution `SUCCESS`.
+- Live safe-branch readback: assessment `2`, NCT `NCT99999999`, state/verdict `UNRESOLVED`, `certified=false`, reason `SOURCE_HTTP_ERROR`, source unsafe and not fresh, attempt/revision `1`. Readback by assessment ID and NCT ID was identical.
 
 | Command | Result | Observed output |
 |---|---|---|
@@ -41,9 +44,9 @@ deterministically derived from the readable source. The deployment manifest,
 Explorer source, and live readback bind that exact artifact to the Studionet
 address above.
 
-Known limitation: the 1.1.0 happy path is now proven live, but no live 1.1.0
-important non-certifying branch has been recorded yet. Contradictory results
-status and malformed/insufficient primary measurements remain supported by
-local and CI regression tests, not a live 1.1.0 assessment transaction.
-Historical 1.0.1 assessment transactions remain audit evidence for the earlier
+Known limitation: the 1.1.0 happy path and an unavailable-source non-certifying
+branch are proven live. Exact contradictory results-status combinations and
+malformed/insufficient primary measurements remain supported by local and CI
+regression tests, not by manipulating the independent live ClinicalTrials.gov
+source. Historical 1.0.1 transactions remain audit evidence for the earlier
 contract only.
